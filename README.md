@@ -1,4 +1,4 @@
-# GetTM
+# RatsTM
 
 This is a prototype app for decoding RATSReport TeleMessages. It uses
 the handy python `bitstruct` module.
@@ -6,11 +6,18 @@ the handy python `bitstruct` module.
 `bitstruct` lets you extract arbitrary bit fields from a vector
 of bytes. A format string defines the bit fields.
 
-***The format string must exactly match the bitfield definitions in ECUReport_t.***
+***The format strings must exactly match the bitfield definitions in 
+   RATSReportHeader_t and ECUReport_t.***
 
 The binary payload of the RATSReport TM currently starts with a
 `StratoRats::RATSReportHeader_t`, and then is followed by a list of
-`ECUReport` records, straight from the ECU's mouth.
+`ECUReport_t` records, straight from the ECU's mouth.
+
+The `RATSReportHeader_t` contains a bit of metadata. Espcially important fields are:
+
+- `header_size_bytes`: (uint8_t) the number of bytes in the header, including
+   this byte.
+- `num_ecu_records`: The number of `ECUReport_t`records. It can be zero.
 
 # bitstruct
 
