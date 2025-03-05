@@ -1,6 +1,7 @@
 #
 # See StratoCore_RATS/src/StratoRats.h for StratoRATS::RATSReportHeader_t,
 # which describes the bit-packed TM header block.
+#
 # See ECUComm/src/ECUComm.h for ECUComm::ECUReport_t, which describes the
 # bit-packed ECU data block.
 # 
