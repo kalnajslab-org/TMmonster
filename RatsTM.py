@@ -5,10 +5,21 @@
 # bit-packed ECU data block.
 # 
 import sys
+import xmltodict
 from bitstruct import *
 
-# Define the format string for the bitstruct
-format_string = (
+# The header section of the RATSReport binary payload
+hdr_decode_fmt=('>u8u16u16u1u13')
+hdr_field_names = [
+    'header_size_bytes', 
+    'num_ecu_records', 
+    'ecu_record_size_bytes', 
+    'ecu_pwr_on', 
+    'v56'
+]
+
+# The ECU data sections of the RATSReport binary payload
+ecu_decode_fmt = (
     '>'    # little-endian
     'u4'   # rev (4 bits)
     'u1'   # heat_on (1 bit)
@@ -36,7 +47,7 @@ format_string = (
     'u24'  # tsen_pres (24 bits)
 )
 
-variable_names = [
+ecu_param_names = [
     'rev', 
     'heat_on', 
     'v5', 
@@ -69,34 +80,59 @@ if __name__ == "__main__":
         print(f'Usage: {sys.argv[0]} <TM file>')
         sys.exit(1)
     tm_file = sys.argv[1]
-    with open(tm_file, "rb") as f:
-        all_bytes = f.read()
-        print('TM size:', len(all_bytes))
-        start = all_bytes.find(b"START")+5
-        print(f'TM binary start:0x{start:x}')
-        f = '>u8'
-        n_header_bytes, = unpack(f, all_bytes[start:])
-        print('n_header_bytes:', n_header_bytes)
-        f='>u16u16u1u13'
-        num_ecu_records, ecu_record_size, ecu_pwr_on, v56 = unpack(f, all_bytes[start+1:])
-        print('num_ecu_records:', num_ecu_records)
-        print('ecu_record_size:', ecu_record_size)
-        print('ecu_pwr_on:', ecu_pwr_on)
-        print('v56:', v56/100.0)
+
+    with open(tm_file, "rb") as tm_file:
+
+        # Read the entire file
+        all_bytes = tm_file.read()
+
+        # Find the XML section end
+        xml_end = all_bytes.find(b"</TM>")
+        if xml_end == -1:        
+            print("XML section not found")
+            sys.exit(1)
+        xml_end += 5
+        # Parse the XML section
+        xml_str = all_bytes[:xml_end].decode('utf-8')
+        xml_dict = xmltodict.parse(xml_str)
+        print("----- RATSReport XML section:")
+        for key, value in xml_dict['TM'].items():
+            print(f'{key}: {value}')
+        print()
+
+        # Find the start of the binary payload
+        bin_start = all_bytes.find(b"START")+5
+        if bin_start == -1:
+            print("Binary payload not found")
+            sys.exit(1)
+        # Unpack the binary header
+        header = unpack_dict(hdr_decode_fmt, hdr_field_names, all_bytes[bin_start:])
+        header['v56'] = header['v56']/100.0
+        print("----- RATSReport binary header:")
+        for key, value in header.items():
+            print(f'{key}: {value}')
         print()
         
-        # Space past the header bytes
-        data_bytes = all_bytes[start+n_header_bytes:]
+        # Keep useful header values in variables
+        header_size = header['header_size_bytes']
+        ecu_record_size = header['ecu_record_size_bytes']
+
+        # Space past the header bytes and get the ECU data records
+        ecu_records_bytes = all_bytes[bin_start+header_size:]
         record_num = 0
         offset = 0
-        while offset < len(data_bytes):
-            if offset+ecu_record_size > len(data_bytes):
+
+        # Unpack the ECU data records
+        while offset < len(ecu_records_bytes):
+            if offset+header_size > len(ecu_records_bytes):
                 # We've reached the terminating bytes at the end of the file
                 break
-            data_record = data_bytes[offset:offset+ecu_record_size]
+
+            # Get the next record
+            ecu_record_bytes = ecu_records_bytes[offset:offset+ecu_record_size]
         
-            # Unpack the unscaled parameters for the first record
-            vars = unpack_dict(format_string, variable_names, data_record)
+            # Unpack the unscaled parameters
+            vars = unpack_dict(ecu_decode_fmt, ecu_param_names, ecu_record_bytes)
 
             # Scale them
             scaled_vars = {}
@@ -125,8 +161,7 @@ if __name__ == "__main__":
             scaled_vars['tsen_ptemp'] = vars['tsen_ptemp']
             scaled_vars['tsen_pres'] = vars['tsen_pres']
 
-            print(f'----- Record {record_num}:')
-            record_num += 1
+            print(f'----- ECU record {record_num}:')
             for key, value in scaled_vars.items():
                 if key in ['tsen_airt', 'tsen_ptemp', 'tsen_pres']:
                     print(f'{key}: 0x{value:06x}')
@@ -136,5 +171,7 @@ if __name__ == "__main__":
                     print(f'{key}: {value:08d}')
                 else:
                     print(f'{key}: {value}')
-            offset += ecu_record_size
+            print()
+            record_num += 1
 
+            offset += ecu_record_size
