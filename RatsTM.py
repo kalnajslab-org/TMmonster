@@ -28,6 +28,7 @@ ecu_decode_fmt = (
     'u11'  # v12 (11 bits)
     'u13'  # v56 (13 bits)
     'u11'  # board_t (11 bits)
+    'u8'   # temp_setpoint (8 bits)
     'u8'   # switch_mA (8 bits)
     'u1'   # gps_valid (1 bit)
     's32'  # gps_lat (32 bits)
@@ -55,6 +56,7 @@ ecu_param_names = [
     'v12', 
     'v56', 
     'board_t', 
+    'temp_setpoint',
     'switch_mA', 
     'gps_valid', 
     'gps_lat', 
@@ -96,10 +98,14 @@ if __name__ == "__main__":
         # Parse the XML section
         xml_str = all_bytes[:xml_end].decode('utf-8')
         xml_dict = xmltodict.parse(xml_str)
-        print("----- RATSReport XML section:")
+        print("----- TM XML section:")
         for key, value in xml_dict['TM'].items():
             print(f'{key}: {value}')
         print()
+
+        if 'RATSReport' not in xml_dict['TM']['StateMess1']:
+            print("This is not a RATSReport")
+            sys.exit(1)
 
         # Find the start of the binary payload
         bin_start = all_bytes.find(b"START")+5
@@ -143,6 +149,7 @@ if __name__ == "__main__":
             scaled_vars['v12'] = vars['v12']/100.0
             scaled_vars['v56'] = vars['v56']/100.0
             scaled_vars['board_t'] = vars['board_t']/10.0-100.0
+            scaled_vars['temp_setpoint'] = vars['temp_setpoint']-100.0
             scaled_vars['switch_mA'] = vars['switch_mA']
             scaled_vars['gps_valid'] = bool(vars['gps_valid'])
             scaled_vars['gps_lat'] = vars['gps_lat']*1.0e-6
