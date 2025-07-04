@@ -13,7 +13,7 @@ from bitstruct import *
 # The header section of the RATSReport binary payload
 # The header is defined in StratoCore_RATS/src/StratoRats.h as StratoRats::RATSReportHeader_t.
 # The header is unpacked using bitstruct.
-hdr_decode_fmt=(
+rats_decode_fmt=(
     '>'    # little-endian
     'u8'   # header_size_bytes (8 bits)
     'u16'  # num_ecu_records (16 bits)
@@ -22,7 +22,7 @@ hdr_decode_fmt=(
     'u13'  # v56 (13 bits)
 )
 
-hdr_field_names = [
+rats_field_names = [
     'header_size_bytes', 
     'num_ecu_records', 
     'ecu_record_size_bytes', 
@@ -339,7 +339,7 @@ if __name__ == "__main__":
             print("Binary payload not found")
             sys.exit(1)
         # Unpack the binary header
-        header = unpack_dict(hdr_decode_fmt, hdr_field_names, all_bytes[bin_start:])
+        header = unpack_dict(rats_decode_fmt, rats_field_names, all_bytes[bin_start:])
         header['v56'] = header['v56']/100.0
         print("----- RATSReport binary header:")
         for key, value in header.items():
