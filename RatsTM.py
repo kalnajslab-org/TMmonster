@@ -44,7 +44,6 @@ ecu_decode_fmt = {
         'u11'  # v12 (11 bits)
         'u13'  # v56 (13 bits)
         'u11'  # board_t (11 bits)
-        'u8'   # temp_setpoint (8 bits)
         'u8'   # switch_mA (8 bits)
         'u1'   # gps_valid (1 bit)
         's32'  # gps_lat (32 bits)
@@ -138,7 +137,6 @@ ecu_param_names = {
         'v12', 
         'v56', 
         'board_t', 
-        'temp_setpoint',
         'switch_mA', 
         'gps_valid', 
         'gps_lat', 
@@ -224,7 +222,6 @@ def scaled_vars_v1(raw_vars):
         'v12': raw_vars['v12'] / 100.0,
         'v56': raw_vars['v56'] / 100.0,
         'board_t': raw_vars['board_t'] / 10.0 - 100.0,
-        'temp_setpoint': raw_vars['temp_setpoint'] - 100.0,
         'switch_mA': raw_vars['switch_mA'],
         'gps_valid': bool(raw_vars['gps_valid']),
         'gps_lat': raw_vars['gps_lat'] * 1.0e-6,
