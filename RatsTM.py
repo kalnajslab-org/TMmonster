@@ -53,6 +53,19 @@ rats_bits = {
     'u11'  # cpu_temp (11 bits)
     'u10'  # lora_rssi (10 bits)
     'u10'  # lora_snr (10 bits)
+   ),
+   2: (
+    '>'    # little-endian
+    'u4'   # The version of the RATS report header.
+    'u8'   # header_size_bytes (4 bits)
+    'u10'  # num_ecu_records (10 bits)
+    'u9'   # ecu_record_size_bytes (9 bits)
+    'u1'   # ecu_pwr_on (1 bit)
+    'u13'  # v56 (13 bits)
+    'u11'  # cpu_temp (11 bits)
+    'u10'  # lora_rssi (10 bits)
+    'u10'  # lora_snr (10 bits)
+    'u11'  # inst_imon (11 bits)
    )
 }
 
@@ -75,6 +88,18 @@ rats_field_names = {
     'cpu_temp',
     'lora_rssi',
     'lora_snr'
+    ],
+    2:[
+    'rev',
+    'header_size_bytes',
+    'num_ecu_records',
+    'ecu_record_size_bytes',
+    'ecu_pwr_on',
+    'v56',
+    'cpu_temp',
+    'lora_rssi',
+    'lora_snr',
+    'inst_imon'
     ]
 }
 
@@ -340,6 +365,21 @@ def rats_scaled_vars_v1(raw_vars):
         'cpu_temp': raw_vars.get('cpu_temp') / 10.0 - 100.0,
         'lora_rssi': raw_vars.get('lora_rssi') / 10.0 - 100.0,
         'lora_snr': raw_vars.get('lora_snr') / 10.0 - 70.0
+    }
+
+def rats_scaled_vars_v2(raw_vars):
+    """Scale the raw variables from ECU record version 1."""
+    return {
+        'rev': raw_vars['rev'],
+        'header_size_bytes': raw_vars['header_size_bytes'],
+        'num_ecu_records': raw_vars['num_ecu_records'],
+        'ecu_record_size_bytes': raw_vars['ecu_record_size_bytes'],
+        'ecu_pwr_on': bool(raw_vars['ecu_pwr_on']),
+        'v56': raw_vars['v56'] / 100.0,
+        'cpu_temp': raw_vars.get('cpu_temp') / 10.0 - 100.0,
+        'lora_rssi': raw_vars.get('lora_rssi') / 10.0 - 100.0,
+        'lora_snr': raw_vars.get('lora_snr') / 10.0 - 70.0,
+        'inst_imon': raw_vars.get('inst_imon') / 10.0
     }
 
 def ecu_scaled_vars_v1(raw_vars):
