@@ -221,6 +221,36 @@ ecu_bits = {
         'u24'  # tsen_ptemp (24 bits)
         'u24'  # tsen_pres (24 bits)
         'u11'  # cpu_temp (11 bits)
+    ),
+    5: (
+        '>'    # little-endian
+        'u4'   # rev (4 bits)
+        'u1'   # heat_on (1 bit)
+        'u9'   # v5 (9 bits)
+        'u11'  # v12 (11 bits)
+        'u13'  # v56 (13 bits)
+        'u11'  # board_t (11 bits)
+        'u8'   # temp_setpoint (8 bits)
+        'u8'   # switch_mA (8 bits)
+        'u1'   # gps_valid (1 bit)
+        's32'  # gps_lat (32 bits)
+        's32'  # gps_lon (32 bits)
+        'u16'  # gps_alt (16 bits)
+        'u5'   # gps_sats (5 bits)
+        'u19'  # gps_date (19 bits)
+        'u25'  # gps_time (25 bits)
+        'u8'   # gps_age_secs (8 bits)
+        'u1'   # rs41_valid (1 bit)
+        'u1'   # rs41_regen (1 bit)
+        'u14'  # rs41_airt (14 bits)
+        'u10'  # rs41_hum (10 bits)
+        'u8'   # rs41_hst (8 bits)
+        'u17'  # rs41_pres (17 bits)
+        'u1'   # rs41_pcb_h (1 bit)
+        'u12'  # tsen_airt (12 bits)
+        'u24'  # tsen_ptemp (24 bits)
+        'u24'  # tsen_pres (24 bits)
+        'u11'  # cpu_temp (11 bits)
     )
 }
 
@@ -331,6 +361,35 @@ ecu_field_names = {
         'gps_time', 
         'gps_age_secs', 
         'rs41_valid', 
+        'rs41_airt', 
+        'rs41_hum', 
+        'rs41_hst', 
+        'rs41_pres', 
+        'rs41_pcb_h', 
+        'tsen_airt', 
+        'tsen_ptemp', 
+        'tsen_pres',
+        'cpu_temp'
+    ],
+    5: [
+        'rev', 
+        'heat_on', 
+        'v5', 
+        'v12', 
+        'v56', 
+        'board_t', 
+        'temp_setpoint',
+        'switch_mA', 
+        'gps_valid', 
+        'gps_lat', 
+        'gps_lon', 
+        'gps_alt', 
+        'gps_sats', 
+        'gps_date', 
+        'gps_time', 
+        'gps_age_secs', 
+        'rs41_valid', 
+        'rs41_regen',
         'rs41_airt', 
         'rs41_hum', 
         'rs41_hst', 
@@ -491,6 +550,37 @@ def ecu_scaled_vars_v4(raw_vars):
         'gps_time': raw_vars['gps_time'],
         'gps_age_secs': raw_vars['gps_age_secs'],
         'rs41_valid': bool(raw_vars['rs41_valid']),
+        'rs41_airt': raw_vars['rs41_airt'] / 100.0 - 100.0,
+        'rs41_hum': raw_vars['rs41_hum'] / 100.0,
+        'rs41_hst': raw_vars['rs41_hst'],
+        'rs41_pres': raw_vars['rs41_pres'] / 100.0,
+        'rs41_pcb_h': bool(raw_vars['rs41_pcb_h']),
+        'tsen_airt': raw_vars['tsen_airt'],
+        'tsen_ptemp': raw_vars['tsen_ptemp'],
+        'tsen_pres': raw_vars['tsen_pres'],
+        'cpu_temp': raw_vars.get('cpu_temp')/10 - 100.0
+    }
+def ecu_scaled_vars_v5(raw_vars):
+    """Scale the raw variables from ECU record version 5."""
+    return {
+        'rev': raw_vars['rev'],
+        'heat_on': bool(raw_vars['heat_on']),
+        'v5': raw_vars['v5'] / 100.0,
+        'v12': raw_vars['v12'] / 100.0,
+        'v56': raw_vars['v56'] / 100.0,
+        'board_t': raw_vars['board_t'] / 10.0 - 100.0,
+        'temp_setpoint': raw_vars['temp_setpoint'] - 100.0,
+        'switch_mA': raw_vars['switch_mA'],
+        'gps_valid': bool(raw_vars['gps_valid']),
+        'gps_lat': raw_vars['gps_lat'] * 1.0e-6,
+        'gps_lon': raw_vars['gps_lon'] * 1.0e-6,
+        'gps_alt': raw_vars['gps_alt'] * 1.0,
+        'gps_sats': raw_vars['gps_sats'],
+        'gps_date': raw_vars['gps_date'],
+        'gps_time': raw_vars['gps_time'],
+        'gps_age_secs': raw_vars['gps_age_secs'],
+        'rs41_valid': bool(raw_vars['rs41_valid']),
+        'rs41_regen': bool(raw_vars['rs41_regen']),
         'rs41_airt': raw_vars['rs41_airt'] / 100.0 - 100.0,
         'rs41_hum': raw_vars['rs41_hum'] / 100.0,
         'rs41_hst': raw_vars['rs41_hst'],
