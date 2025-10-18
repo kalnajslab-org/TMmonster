@@ -226,6 +226,8 @@ ecu_bits = {
         '>'    # little-endian
         'u4'   # rev (4 bits)
         'u1'   # heat_on (1 bit)
+        'u1'   # rs41_en (1 bit)
+        'u1'   # tsen_power (1 bit)
         'u9'   # v5 (9 bits)
         'u11'  # v12 (11 bits)
         'u13'  # v56 (13 bits)
@@ -374,6 +376,8 @@ ecu_field_names = {
     5: [
         'rev', 
         'heat_on', 
+        'rs41_en', 
+        'tsen_power',
         'v5', 
         'v12', 
         'v56', 
@@ -565,6 +569,8 @@ def ecu_scaled_vars_v5(raw_vars):
     return {
         'rev': raw_vars['rev'],
         'heat_on': bool(raw_vars['heat_on']),
+        'rs41_en': bool(raw_vars['rs41_en']),
+        'tsen_power': bool(raw_vars['tsen_power']),
         'v5': raw_vars['v5'] / 100.0,
         'v12': raw_vars['v12'] / 100.0,
         'v56': raw_vars['v56'] / 100.0,
