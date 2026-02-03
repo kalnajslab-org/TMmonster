@@ -102,8 +102,8 @@ def main(args):
                     continue
 
                 # Keep useful header values in variables
-                header_size = header['header_size_bytes']
-                ecu_record_size = header['ecu_record_size_bytes']
+                header_size = int(header['header_size_bytes'])
+                ecu_record_size = int(header['ecu_record_size_bytes'])
 
                 # Space past the header bytes and get the ECU data records
                 ecu_records_bytes = all_bytes[bin_start+header_size:]
