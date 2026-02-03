@@ -754,8 +754,7 @@ def parse_args():
     parser.add_argument("--header-only", action="store_true", help="Print only the RATSREPORT header")
     return parser.parse_args()
 
-if __name__ == "__main__":
-    args = parse_args()
+def main(args):
     header_only = args.header_only
     tm_files = args.tm_file if isinstance(args.tm_file, list) else [args.tm_file]
 
@@ -865,3 +864,7 @@ if __name__ == "__main__":
                     offset += ecu_record_size
             else:
                 print("No RATSREPORT section found in TM XML")
+
+if __name__ == "__main__":
+    args = parse_args()
+    main(args)
