@@ -41,6 +41,24 @@ def parse_args():
     parser.add_argument("--header-only", action="store_true", help="Print only the RATSREPORT header")
     return parser.parse_args()
 
+def extractTMxml(all_bytes: bytes) -> dict:
+    """
+    Extracts and parses the <TM>...</TM> XML section from the given bytes.
+    Returns the parsed XML as a dictionary.
+    """
+    xml_start = all_bytes.find(b"<TM>")
+    if xml_start == -1:
+        print("XML section start not found")
+        return {}
+    xml_end = all_bytes.find(b"</TM>")
+    if xml_end == -1:
+        print("XML section not found")
+        return {}
+    xml_end += 5  # include the </TM> tag
+    xml_str = all_bytes[xml_start:xml_end].decode('utf-8')
+    xml_dict = xmltodict.parse(xml_str)
+    return xml_dict
+
 def main(args):
     header_only = args.header_only
     tm_files = args.tm_file if isinstance(args.tm_file, list) else [args.tm_file]
@@ -53,20 +71,10 @@ def main(args):
             # Read the entire file
             all_bytes = tm_file.read()
 
-            # Find the XML section end
-            # Find the XML section start
-            xml_start = all_bytes.find(b"<TM>")
-            if xml_start == -1:
-                print("XML section start not found")
-            xml_end = all_bytes.find(b"</TM>")
-            if xml_end == -1:        
-                print("XML section not found")
-            if xml_end == -1 or xml_start == -1:
+            xml_dict = extractTMxml(all_bytes)
+            if not xml_dict:
                 continue
-            xml_end += 5  # include the </TM> tag
-            # Parse the XML section
-            xml_str = all_bytes[xml_start:xml_end].decode('utf-8')
-            xml_dict = xmltodict.parse(xml_str)
+
             print("----- TM XML section:")
             for key, value in xml_dict['TM'].items():
                 print(f'{key}: {value}')
