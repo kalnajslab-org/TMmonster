@@ -9,7 +9,7 @@
 import sys
 import bitstruct
 import xmltodict
-from bitstruct import *
+from bitstruct import unpack_dict
 import argparse
 from RatsBitDefs import *
 from RatsScaledVars import *
