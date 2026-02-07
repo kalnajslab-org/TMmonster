@@ -10,7 +10,7 @@ import sys
 import xmltodict
 import argparse
 import os
-import RATSReport
+import RATSREPORT
 
 # The RATSReport contains a bit-packed RATSReport header and a series of ECUReports.
 #
@@ -39,6 +39,7 @@ def parse_args():
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--header-only", action="store_true", help="Print TM XML section and report headers only, without data records")
     group.add_argument("--summary", action="store_true", help="Print a single line summary for each file")
+    parser.add_argument("--report-type", type=str, default=None, help="Specify the type of report to process (e.g., RATSREPORT). If not specified, all report types will be processed.")
     args = parser.parse_args()
 
     # Expand directories to include all files (not directories) inside them
@@ -107,25 +108,36 @@ def main(args):
             if not xml_dict:
                 continue
 
-            print(make_summary(xml_dict, tm_file.name))
+            # Find the report type in this TM
+            report_type = xml_dict['TM']['StateMess1']
 
-            if args.summary:
-                continue
+            if not args.report_type or args.report_type in report_type:
+                print(make_summary(xml_dict, tm_file.name))
 
-            print("----- TM XML section:")
-            for key, value in xml_dict['TM'].items():
-                print(f'{key}: {value}')
-            print()
-
-            if any(key in xml_dict['TM']['StateMess1'] for key in ['RATSReport', 'RATSREPORT']):
-                # Find the start of the binary payload
-                bin_start = all_bytes.find(b"START")+5
-                if bin_start == -1:
-                    print("Binary payload not found")
+                if args.summary:
                     continue
-                RATSReport.decode_ratsreport(all_bytes, bin_start, header_only)
-            else:
-                print("No RATSREPORT section found in TM XML")
+
+                print("----- TM XML section:")
+                for key, value in xml_dict['TM'].items():
+                    print(f'{key}: {value}')
+                print()
+
+                # Get the payload, if it exists.
+                payload = None
+                if xml_dict['TM']['Length'] != '0':
+                    payload_start = all_bytes.find(b"START") + 5
+                    if payload_start != -1:
+                        payload = all_bytes[payload_start:]
+
+                # Process the payload based on the report type
+                if report_type == "RATSREPORT":
+                    if not payload:
+                        print("Binary payload not found for RATSREPORT")
+                        continue
+                    RATSREPORT.decode_payload(payload,header_only)
+
+                if report_type == "MCBMOTION":
+                    print("This is a RATSREPORT summary TM, payload decoding not yet implemented.")
 
 if __name__ == "__main__":
     args = parse_args()

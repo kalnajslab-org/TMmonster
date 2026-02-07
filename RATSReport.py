@@ -3,13 +3,13 @@ import bitstruct
 from RatsBitDefs import *
 from RatsScaledVars import *
 
-def decode_ratsreport(all_bytes, bin_start, header_only):
-    header_ver = bitstruct.unpack('>u4', all_bytes[bin_start:bin_start+1])[0]
+def decode_payload(payload, header_only):
+    header_ver = bitstruct.unpack('>u4', payload[0:1])[0]
     print(f'RATSREPORT header version: {header_ver}')
     if header_ver not in rats_bits:
         print(f'Unknown RATSREPORT header version {header_ver}')
         sys.exit(1)
-    header = bitstruct.unpack_dict(rats_bits[header_ver], rats_field_names[header_ver], all_bytes[bin_start:])
+    header = bitstruct.unpack_dict(rats_bits[header_ver], rats_field_names[header_ver], payload)
 
     # Scale them
     scaling_function = globals().get(f'rats_scaled_vars_v{header_ver}', None)
@@ -31,7 +31,7 @@ def decode_ratsreport(all_bytes, bin_start, header_only):
     ecu_record_size = int(header['ecu_record_size_bytes'])
 
     # Space past the header bytes and get the ECU data records
-    ecu_records_bytes = all_bytes[bin_start+header_size:]
+    ecu_records_bytes = payload[header_size:]
     record_num = 0
     offset = 0
 
