@@ -137,7 +137,7 @@ def main(args):
                     RATSREPORT.decode_payload(payload,header_only)
 
                 if report_type == "MCBMOTION":
-                    print("This is a RATSREPORT summary TM, payload decoding not yet implemented.")
+                    print("This is a MCBMOTION TM, payload decoding not yet implemented.")
 
 if __name__ == "__main__":
     args = parse_args()
