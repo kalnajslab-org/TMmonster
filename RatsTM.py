@@ -13,6 +13,7 @@ from bitstruct import unpack_dict
 import argparse
 from RatsBitDefs import *
 from RatsScaledVars import *
+import os
 
 # The RATSReport contains a bit-packed RATSReport header and a series of ECUReports.
 #
@@ -37,9 +38,24 @@ from RatsScaledVars import *
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Decode RATS TM binary files.")
-    parser.add_argument("tm_file", nargs='+', help="Path(s) to the TM file(s)")
-    parser.add_argument("--header-only", action="store_true", help="Print only the RATSREPORT header")
-    return parser.parse_args()
+    parser.add_argument("tm_file", nargs='+', help="Path(s) to the TM file(s) or directories")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--header-only", action="store_true", help="Print TM XML section and report headers only, without data records")
+    group.add_argument("--summary", action="store_true", help="Print a single line summary for each file")
+    args = parser.parse_args()
+
+    # Expand directories to include all files (not directories) inside them
+    expanded_files = []
+    for path in args.tm_file:
+        if os.path.isdir(path):
+            for entry in os.listdir(path):
+                full_path = os.path.join(path, entry)
+                if os.path.isfile(full_path):
+                    expanded_files.append(full_path)
+        else:
+            expanded_files.append(path)
+    args.tm_file = expanded_files
+    return args
 
 def extractTMxml(all_bytes: bytes) -> dict:
     """
@@ -59,12 +75,31 @@ def extractTMxml(all_bytes: bytes) -> dict:
     xml_dict = xmltodict.parse(xml_str)
     return xml_dict
 
+def make_summary(xml_dict: dict, file_path: str) -> str:
+    """
+    Generates a single line CSV summary for the given TM XML dictionary.
+    """
+    tm_section = xml_dict.get('TM', {})
+    state_mess1 = tm_section.get('StateMess1', 'N/A')
+    state_flag1 = tm_section.get('StateFlag1', 'N/A')
+    state_mess2 = tm_section.get('StateMess2', 'N/A')
+    state_flag2 = tm_section.get('StateFlag2', 'N/A')
+    state_mess3 = tm_section.get('StateMess3', 'N/A')
+    state_flag3 = tm_section.get('StateFlag3', 'N/A')
+    length = tm_section.get('Length', 'N/A')
+
+    summary = ''
+    summary += f'\"{state_mess1}\",\"{state_flag1}\",'
+    summary += f'\"{state_mess2}\",\"{state_flag2}\",'
+    summary += f'\"{state_mess3}\",\"{state_flag3}\",'
+    summary += f'{length},'
+    summary += f'\"{file_path}\"'
+    return summary
+
 def main(args):
     header_only = args.header_only
-    tm_files = args.tm_file if isinstance(args.tm_file, list) else [args.tm_file]
 
-    for tm_file in tm_files:
-        print(f"Processing file: {tm_file}")
+    for tm_file in args.tm_file:
 
         with open(tm_file, "rb") as tm_file:
 
@@ -73,6 +108,11 @@ def main(args):
 
             xml_dict = extractTMxml(all_bytes)
             if not xml_dict:
+                continue
+
+            print(make_summary(xml_dict, tm_file.name))
+
+            if args.summary:
                 continue
 
             print("----- TM XML section:")
