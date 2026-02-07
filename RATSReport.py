@@ -3,28 +3,30 @@ import bitstruct
 from RatsBitDefs import *
 from RatsScaledVars import *
 
-def decode_payload(payload, header_only):
+def decode_payload(payload, print_headers, print_payload):
     header_ver = bitstruct.unpack('>u4', payload[0:1])[0]
-    print(f'RATSREPORT header version: {header_ver}')
     if header_ver not in rats_bits:
         print(f'Unknown RATSREPORT header version {header_ver}')
         sys.exit(1)
     header = bitstruct.unpack_dict(rats_bits[header_ver], rats_field_names[header_ver], payload)
 
-    # Scale them
     scaling_function = globals().get(f'rats_scaled_vars_v{header_ver}', None)
     if scaling_function is None:
         print(f'No scaling function for RATSREPORT header version {header_ver}')
         sys.exit(1)
     scaled_rats_vars = scaling_function(header)
 
-    print("----- RATSREPORT binary header:")
-    for key, value in scaled_rats_vars.items():
-        print(f'{key}: {value}')
-    print()
+    if print_headers:
+        print(f'RATSREPORT header version: {header_ver}')
+        print("----- RATSREPORT binary header:")
+        for key, value in scaled_rats_vars.items():
+            print(f'{key}: {value}')
+        print()
 
-    if header_only:
+    if not print_payload:
         return
+
+    # Scale them
 
     # Keep useful header values in variables
     header_size = int(header['header_size_bytes'])
