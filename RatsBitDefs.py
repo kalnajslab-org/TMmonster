@@ -52,6 +52,22 @@ rats_bits = {
     'u10'  # lora_rssi (10 bits)
     'u10'  # lora_snr (10 bits)
     'u11'  # inst_imon (11 bits)
+    ),
+   4: (
+    '>'    # little-endian
+    'u4'   # The version of the RATS report header.
+    'u16'  # rats_id (16 bits)
+    'u32'  # epoch_time (32 bits)
+    'u8'   # paired_ecu (8 bits)
+    'u8'   # header_size_bytes (8 bits)
+    'u10'  # num_ecu_records (10 bits)
+    'u9'   # ecu_record_size_bytes (9 bits)
+    'u1'   # ecu_pwr_on (1 bit)
+    'u13'  # v56 (13 bits)
+    'u11'  # cpu_temp (11 bits)
+    'u10'  # lora_rssi (10 bits)
+    'u10'  # lora_snr (10 bits)
+    'u11'  # inst_imon (11 bits)
     )
 }
 
@@ -99,7 +115,22 @@ rats_field_names = {
     'cpu_temp',
     'lora_rssi',
     'lora_snr',
-    'inst_imon'
+    'inst_imon',
+    ],
+    4:[
+    'rats_report_rev',
+    'rats_id',
+    'epoch_time',
+    'paired_ecu',
+    'header_size_bytes',
+    'num_ecu_records',
+    'ecu_record_size_bytes',
+    'ecu_pwr_on',
+    'v56',
+    'cpu_temp',
+    'lora_rssi',
+    'lora_snr',
+    'inst_imon',
     ]
 }
 

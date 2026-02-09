@@ -53,6 +53,23 @@ def rats_scaled_vars_v3(raw_vars):
         'inst_imon': raw_vars.get('inst_imon') / 10.0
     }
 
+def rats_scaled_vars_v4(raw_vars):
+    return {
+        'rats_report_rev': raw_vars['rats_report_rev'],
+        'rats_id': raw_vars['rats_id'],
+        'epoch_time': raw_vars['epoch_time'],   
+        'paired_ecu': raw_vars['paired_ecu'],   
+        'header_size_bytes': raw_vars['header_size_bytes'],
+        'num_ecu_records': raw_vars['num_ecu_records'],
+        'ecu_record_size_bytes': raw_vars['ecu_record_size_bytes'],
+        'ecu_pwr_on': bool(raw_vars['ecu_pwr_on']),
+        'v56': raw_vars['v56'] / 100.0,
+        'cpu_temp': raw_vars.get('cpu_temp') / 10.0 - 100.0,
+        'lora_rssi': raw_vars.get('lora_rssi') / 10.0 - 100.0,
+        'lora_snr': raw_vars.get('lora_snr') / 10.0 - 70.0,
+        'inst_imon': raw_vars.get('inst_imon') / 10.0
+    }
+
 def ecu_scaled_vars_v1(raw_vars):
     return {
         'ecu_report_rev': raw_vars['ecu_report_rev'],
@@ -235,5 +252,6 @@ def ecu_scaled_vars_v6(raw_vars):
         'tsen_airt': raw_vars['tsen_airt'],
         'tsen_ptemp': raw_vars['tsen_ptemp'],
         'tsen_pres': raw_vars['tsen_pres'],
-        'cpu_temp': raw_vars.get('cpu_temp')/10 - 100.0
+        'cpu_temp': raw_vars.get('cpu_temp')/10 - 100.0,
+        'epoch_time': raw_vars.get('epoch_time')
     }
