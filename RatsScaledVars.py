@@ -2,7 +2,7 @@
 
 def rats_scaled_vars_v0(raw_vars):
     return {
-        'rev': raw_vars['rev'],
+        'rats_report_rev': raw_vars['rats_report_rev'],
         'header_size_bytes': raw_vars['header_size_bytes'],
         'num_ecu_records': raw_vars['num_ecu_records'],
         'ecu_record_size_bytes': raw_vars['ecu_record_size_bytes'],
@@ -12,7 +12,7 @@ def rats_scaled_vars_v0(raw_vars):
 
 def rats_scaled_vars_v1(raw_vars):
     return {
-        'rev': raw_vars['rev'],
+        'rats_report_rev': raw_vars['rats_report_rev'],
         'header_size_bytes': raw_vars['header_size_bytes'],
         'num_ecu_records': raw_vars['num_ecu_records'],
         'ecu_record_size_bytes': raw_vars['ecu_record_size_bytes'],
@@ -25,7 +25,7 @@ def rats_scaled_vars_v1(raw_vars):
 
 def rats_scaled_vars_v2(raw_vars):
     return {
-        'rev': raw_vars['rev'],
+        'rats_report_rev': raw_vars['rats_report_rev'],
         'header_size_bytes': raw_vars['header_size_bytes'],
         'num_ecu_records': raw_vars['num_ecu_records'],
         'ecu_record_size_bytes': raw_vars['ecu_record_size_bytes'],
@@ -39,7 +39,7 @@ def rats_scaled_vars_v2(raw_vars):
 
 def rats_scaled_vars_v3(raw_vars):
     return {
-        'rev': raw_vars['rev'],
+        'rats_report_rev': raw_vars['rats_report_rev'],
         'rats_id': raw_vars['rats_id'],
         'paired_ecu': raw_vars['paired_ecu'],
         'header_size_bytes': raw_vars['header_size_bytes'],
@@ -55,7 +55,7 @@ def rats_scaled_vars_v3(raw_vars):
 
 def ecu_scaled_vars_v1(raw_vars):
     return {
-        'rev': raw_vars['rev'],
+        'ecu_report_rev': raw_vars['ecu_report_rev'],
         'heat_on': bool(raw_vars['heat_on']),
         'v5': raw_vars['v5'] / 100.0,
         'v12': raw_vars['v12'] / 100.0,
@@ -83,7 +83,7 @@ def ecu_scaled_vars_v1(raw_vars):
 
 def ecu_scaled_vars_v2(raw_vars):
     return {
-        'rev': raw_vars['rev'],
+        'ecu_report_rev': raw_vars['ecu_report_rev'],
         'heat_on': bool(raw_vars['heat_on']),
         'v5': raw_vars['v5'] / 100.0,
         'v12': raw_vars['v12'] / 100.0,
@@ -112,7 +112,7 @@ def ecu_scaled_vars_v2(raw_vars):
 
 def ecu_scaled_vars_v3(raw_vars):
     return {
-        'rev': raw_vars['rev'],
+        'ecu_report_rev': raw_vars['ecu_report_rev'],
         'heat_on': bool(raw_vars['heat_on']),
         'v5': raw_vars['v5'] / 100.0,
         'v12': raw_vars['v12'] / 100.0,
@@ -142,7 +142,7 @@ def ecu_scaled_vars_v3(raw_vars):
 
 def ecu_scaled_vars_v4(raw_vars):
     return {
-        'rev': raw_vars['rev'],
+        'ecu_report_rev': raw_vars['ecu_report_rev'],
         'heat_on': bool(raw_vars['heat_on']),
         'v5': raw_vars['v5'] / 100.0,
         'v12': raw_vars['v12'] / 100.0,
@@ -172,7 +172,7 @@ def ecu_scaled_vars_v4(raw_vars):
 
 def ecu_scaled_vars_v5(raw_vars):
     return {
-        'rev': raw_vars['rev'],
+        'ecu_report_rev': raw_vars['ecu_report_rev'],
         'heat_on': bool(raw_vars['heat_on']),
         'rs41_en': bool(raw_vars['rs41_en']),
         'tsen_power': bool(raw_vars['tsen_power']),
@@ -205,7 +205,7 @@ def ecu_scaled_vars_v5(raw_vars):
 
 def ecu_scaled_vars_v6(raw_vars):
     return {
-        'rev': raw_vars['rev'],
+        'ecu_report_rev': raw_vars['ecu_report_rev'],
         'msg_type': raw_vars['msg_type'],
         'ecu_id': raw_vars['ecu_id'],
         'heat_on': bool(raw_vars['heat_on']),

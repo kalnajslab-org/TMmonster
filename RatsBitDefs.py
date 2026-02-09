@@ -57,7 +57,7 @@ rats_bits = {
 
 rats_field_names = {
     0:[
-    'rev',
+    'rats_report_rev',
     'header_size_bytes', 
     'num_ecu_records', 
     'ecu_record_size_bytes', 
@@ -65,7 +65,7 @@ rats_field_names = {
     'v56'
     ],
     1:[
-    'rev',
+    'rats_report_rev',
     'header_size_bytes',
     'num_ecu_records',
     'ecu_record_size_bytes',
@@ -76,7 +76,7 @@ rats_field_names = {
     'lora_snr'
     ],
     2:[
-    'rev',
+    'rats_report_rev',
     'header_size_bytes',
     'num_ecu_records',
     'ecu_record_size_bytes',
@@ -88,7 +88,7 @@ rats_field_names = {
     'inst_imon'
     ],
     3:[ 
-    'rev',
+    'rats_report_rev',
     'rats_id',
     'paired_ecu',
     'header_size_bytes',
@@ -287,7 +287,7 @@ ecu_bits = {
 
 ecu_field_names = {
     1: [
-        'rev', 
+        'ecu_report_rev', 
         'heat_on', 
         'v5', 
         'v12', 
@@ -313,7 +313,7 @@ ecu_field_names = {
         'tsen_pres'
     ],
     2: [
-        'rev', 
+        'ecu_report_rev', 
         'heat_on', 
         'v5', 
         'v12', 
@@ -340,7 +340,7 @@ ecu_field_names = {
         'tsen_pres'
     ],
     3: [
-        'rev', 
+        'ecu_report_rev', 
         'heat_on', 
         'v5', 
         'v12', 
@@ -368,7 +368,7 @@ ecu_field_names = {
         'cpu_temp'
     ],
     4: [
-        'rev', 
+        'ecu_report_rev', 
         'heat_on', 
         'v5', 
         'v12', 
@@ -396,7 +396,7 @@ ecu_field_names = {
         'cpu_temp'
     ],
     5: [
-        'rev', 
+        'ecu_report_rev', 
         'heat_on', 
         'rs41_en', 
         'tsen_power',
@@ -427,7 +427,7 @@ ecu_field_names = {
         'cpu_temp'
     ],
     6: [
-        'rev', 
+        'ecu_report_rev', 
         'msg_type',
         'ecu_id',
         'heat_on', 

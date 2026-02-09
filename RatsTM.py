@@ -11,6 +11,7 @@ import xmltodict
 import argparse
 import os
 import RATSREPORT
+import MCBREPORT
 
 # The RATSReport contains a bit-packed RATSReport header and a series of ECUReports.
 #
@@ -40,6 +41,7 @@ def parse_args():
     parser.add_argument("--headers", action="store_true", help="Print TM XML section and report headers")
     parser.add_argument("--payload", action="store_true", help="Print the decoded payload")
     parser.add_argument("--summary", action="store_true", help="Print a single line summary for each file")
+    parser.add_argument("--csv", action="store_true", help="Output the payload values in CSV format")
     args = parser.parse_args()
 
     # Expand directories to include all files (not directories) inside them
@@ -78,13 +80,13 @@ def make_summary(xml_dict: dict, file_path: str) -> str:
     Generates a single line CSV summary for the given TM XML dictionary.
     """
     tm_section = xml_dict.get('TM', {})
-    state_mess1 = tm_section.get('StateMess1', 'N/A')
-    state_flag1 = tm_section.get('StateFlag1', 'N/A')
-    state_mess2 = tm_section.get('StateMess2', 'N/A')
-    state_flag2 = tm_section.get('StateFlag2', 'N/A')
-    state_mess3 = tm_section.get('StateMess3', 'N/A')
-    state_flag3 = tm_section.get('StateFlag3', 'N/A')
-    length = tm_section.get('Length', 'N/A')
+    state_mess1 = tm_section.get('StateMess1', '')
+    state_flag1 = tm_section.get('StateFlag1', '')
+    state_mess2 = tm_section.get('StateMess2', '')
+    state_flag2 = tm_section.get('StateFlag2', '')
+    state_mess3 = tm_section.get('StateMess3', '')
+    state_flag3 = tm_section.get('StateFlag3', '')
+    length = int(tm_section.get('Length', '0'))
 
     summary = ''
     summary += f'\"{state_mess1}\",\"{state_flag1}\",'
@@ -95,6 +97,7 @@ def make_summary(xml_dict: dict, file_path: str) -> str:
     return summary
 
 def main(args):
+    first_file = True
 
     for tm_file in args.tm_file:
 
@@ -110,7 +113,10 @@ def main(args):
             # Find the report type in this TM
             report_type = xml_dict['TM']['StateMess1']
 
+            # Only process the report type(s) specified by the user. 
+            # If no report type is specified, process all report types.
             if not args.report_type or args.report_type in report_type:
+
                 if args.summary:
                     print(make_summary(xml_dict, tm_file.name))
 
@@ -125,22 +131,30 @@ def main(args):
                 if xml_dict['TM']['Length'] != '0':
                     payload_start = all_bytes.find(b"START") + 5
                     if payload_start != -1:
-                        payload = all_bytes[payload_start:]
+                        payload = all_bytes[payload_start:-5]  # Exclude the CRC and "END" marker
 
                 payload_processed = False
+
                 # Process the payload based on the report type
                 if report_type == "RATSREPORT":
                     if (args.payload or args.headers) and not payload:
                             print(f"Binary payload not found for {report_type}, can't read headers or data")
                             continue
-                    RATSREPORT.decode_payload(payload,args.headers, args.payload)
+                    if payload:
+                        RATSREPORT.decode_payload(payload,args.headers, args.payload, first_file, args.csv)
                     payload_processed = True
 
-                if report_type == "MCBMOTION":
-                    print("This is a MCBMOTION TM, payload decoding not yet implemented.")
+                if report_type == "MCBREPORT":
+                    if first_file:
+                        print(MCBREPORT.csv_header())
+                        first_file = False
+                    if args.payload and not payload:
+                            continue
+                    if args.payload:
+                        MCBREPORT.decode_payload(payload, args.csv)
                     payload_processed = True
 
-                if not payload_processed:
+                if args.payload and not payload_processed:
                     print(f"{report_type} payload processing not yet implemented.")
 
 if __name__ == "__main__":
