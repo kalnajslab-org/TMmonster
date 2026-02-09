@@ -145,7 +145,7 @@ def main(args):
                     payload_processed = True
 
                 if report_type == "MCBREPORT":
-                    if first_file:
+                    if first_file and args.csv:
                         print(MCBREPORT.csv_header())
                         first_file = False
                     if args.payload and not payload:
