@@ -11,6 +11,7 @@ import xmltodict
 import argparse
 import os
 import RATSREPORT
+import RATSTCACK
 import MCBREPORT
 
 # The RATSReport contains a bit-packed RATSReport header and a series of ECUReports.
@@ -100,62 +101,78 @@ def main(args):
     first_file = True
 
     for tm_file in args.tm_file:
-
+        tm_file = os.path.abspath(tm_file)
         with open(tm_file, "rb") as tm_file:
+            try:
+                # Read the entire file
+                all_bytes = tm_file.read()
 
-            # Read the entire file
-            all_bytes = tm_file.read()
+                xml_dict = extractTMxml(all_bytes)
+                if not xml_dict:
+                    continue
 
-            xml_dict = extractTMxml(all_bytes)
-            if not xml_dict:
-                continue
+                # Find the report type in this TM
+                report_type = xml_dict['TM']['StateMess1']
 
-            # Find the report type in this TM
-            report_type = xml_dict['TM']['StateMess1']
+                # Only process the report type(s) specified by the user. 
+                # If no report type is specified, process all report types.
+                if not args.report_type or args.report_type in report_type:
 
-            # Only process the report type(s) specified by the user. 
-            # If no report type is specified, process all report types.
-            if not args.report_type or args.report_type in report_type:
+                    if args.summary:
+                        print(make_summary(xml_dict, tm_file.name))
 
-                if args.summary:
-                    print(make_summary(xml_dict, tm_file.name))
+                    if args.headers:
+                        print("----- TM XML section:")
+                        for key, value in xml_dict['TM'].items():
+                            print(f'{key}: {value}')
+                        print()
 
-                if args.headers:
-                    print("----- TM XML section:")
-                    for key, value in xml_dict['TM'].items():
-                        print(f'{key}: {value}')
-                    print()
+                    # Get the payload, if it exists.
+                    payload = None
+                    if xml_dict['TM']['Length'] != '0':
+                        payload_start = all_bytes.find(b"START") + 5
+                        if payload_start != -1:
+                            payload = all_bytes[payload_start:-5]  # Exclude the CRC and "END" marker
 
-                # Get the payload, if it exists.
-                payload = None
-                if xml_dict['TM']['Length'] != '0':
-                    payload_start = all_bytes.find(b"START") + 5
-                    if payload_start != -1:
-                        payload = all_bytes[payload_start:-5]  # Exclude the CRC and "END" marker
+                    payload_processed = False
 
-                payload_processed = False
+                    # Process the payload based on the report type
+                    if report_type == "RATSREPORT":
+                        if (args.payload or args.headers) and not payload:
+                                print(f"Binary payload not found for {report_type}, can't read headers or data")
+                                continue
+                        if payload:
+                            RATSREPORT.decode_payload(payload,args.headers, args.payload, first_file, args.csv)
+                        payload_processed = True
 
-                # Process the payload based on the report type
-                if report_type == "RATSREPORT":
-                    if (args.payload or args.headers) and not payload:
-                            print(f"Binary payload not found for {report_type}, can't read headers or data")
-                            continue
-                    if payload:
-                        RATSREPORT.decode_payload(payload,args.headers, args.payload, first_file, args.csv)
-                    payload_processed = True
+                    if report_type == "RATSTCACK":
+                        if args.payload and not payload:
+                                continue
+                        if args.payload:
+                            RATSTCACK.decode_payload(payload, args.headers, args.payload, first_file, args.csv)
+                        payload_processed = True
 
-                if report_type == "MCBREPORT":
-                    if first_file and args.csv:
-                        print(MCBREPORT.csv_header())
-                        first_file = False
-                    if args.payload and not payload:
-                            continue
-                    if args.payload:
-                        MCBREPORT.decode_payload(payload, args.csv)
-                    payload_processed = True
+                    if report_type == "RATSTEXT":
+                        if args.payload and not payload:
+                                continue
+                        if args.payload:
+                            RATSTCACK.decode_payload(payload, args.headers, args.payload, first_file, args.csv)
+                        payload_processed = True
 
-                if args.payload and not payload_processed:
-                    print(f"{report_type} payload processing not yet implemented.")
+                    if report_type == "MCBREPORT":
+                        if first_file and args.csv:
+                            print(MCBREPORT.csv_header())
+                            first_file = False
+                        if args.payload and not payload:
+                                continue
+                        if args.payload:
+                            MCBREPORT.decode_payload(payload, args.csv)
+                        payload_processed = True
+
+                    if args.payload and not payload_processed:
+                        print(f"{report_type} payload processing not yet implemented.")
+            except Exception as e:
+                print(f"Error processing file {tm_file.name}: {e}", file=sys.stderr)
 
 if __name__ == "__main__":
     args = parse_args()
