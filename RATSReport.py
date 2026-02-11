@@ -3,13 +3,15 @@ import sys
 import bitstruct
 from RatsBitDefs import *
 from RatsScaledVars import *
+from TMCSV import print_list_csv
 
 def decode_payload(
     payload: bytes,
     print_headers: bool,
     print_payload: bool,
     first_file: bool,
-    csv_output: bool = False
+    csv_output: bool,
+    float_format: str
 ) -> None:
     rats_report_ver = bitstruct.unpack('>u4', payload[0:1])[0]
     if rats_report_ver not in rats_bits:
@@ -77,10 +79,10 @@ def decode_payload(
         scaled_ecu_vars = scaling_function(vars)
 
         if csv_output:
-            csv_values = iso_format_utc
-            csv_values += ',' + ','.join(str(scaled_rats_vars[field]) for field in rats_field_names[rats_report_ver])
-            csv_values += ',' + ','.join(str(scaled_ecu_vars[field]) for field in ecu_field_names[ecu_record_ver])    
-            print(f"{csv_values}")
+            csv_values = [iso_format_utc]
+            csv_values += [scaled_rats_vars[field] for field in rats_field_names[rats_report_ver]]
+            csv_values += [scaled_ecu_vars[field] for field in ecu_field_names[ecu_record_ver]]    
+            print_list_csv(data=csv_values, float_fmt=float_format)
         else:
             print(f'----- ECU record {record_num}:')
             for key, value in scaled_ecu_vars.items():

@@ -43,6 +43,7 @@ def parse_args():
     parser.add_argument("--payload", action="store_true", help="Print the decoded payload")
     parser.add_argument("--summary", action="store_true", help="Print a single line summary for each file")
     parser.add_argument("--csv", action="store_true", help="Output the payload values in CSV format")
+    parser.add_argument("--float-format", type=str, help="Format string for printing CSV floats (e.g., .3f, .6g)")
     args = parser.parse_args()
 
     # Expand directories to include all files (not directories) inside them
@@ -142,7 +143,7 @@ def main(args):
                                 print(f"Binary payload not found for {report_type}, can't read headers or data")
                                 continue
                         if payload:
-                            RATSREPORT.decode_payload(payload,args.headers, args.payload, first_file, args.csv)
+                            RATSREPORT.decode_payload(payload,args.headers, args.payload, first_file, args.csv, args.float_format)
                         payload_processed = True
 
                     if report_type == "RATSTCACK":
@@ -166,7 +167,7 @@ def main(args):
                         if args.payload and not payload:
                                 continue
                         if args.payload:
-                            MCBREPORT.decode_payload(payload, args.csv)
+                            MCBREPORT.decode_payload(payload, args.csv, args.float_format)
                         payload_processed = True
 
                     if args.payload and not payload_processed:

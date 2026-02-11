@@ -1,6 +1,7 @@
 import bitstruct
 from datetime import datetime, timezone
 import math
+from TMCSV import print_list_csv
 
 mcb_start_time = (
     '>'     # little-endian
@@ -51,7 +52,7 @@ def csv_header():
     header_fields = ','.join(mcb_start_field_names+['start_time_iso']+mcb_field_names)
     return header_fields
 
-def decode_payload(payload, csv_output=False):
+def decode_payload(payload, csv_output, float_format):
 
     # From StratoRATS::InitMCBMotionTracking():
     # uint32_t ProfileStartEpoch  = now();
@@ -98,10 +99,10 @@ def decode_payload(payload, csv_output=False):
         record = payload[i:i+records_size_bytes]
         vars = bitstruct.unpack_dict(mcb_bits, mcb_field_names, record)
         if csv_output:
-            csv_values = iso_format_utc
-            csv_values += ',' + ','.join(str(start_time_vars[field]) for field in mcb_start_field_names)
-            csv_values += ',' + ','.join(str(vars[field]) for field in mcb_field_names)
-            print(f"{csv_values}")
+            csv_values = [iso_format_utc]
+            csv_values += [start_time_vars[field] for field in mcb_start_field_names]
+            csv_values += [vars[field] for field in mcb_field_names]
+            print_list_csv(csv_values, float_format)
         else:
             print(f"--- MCB record {i//records_size_bytes} of {num_records} ---")
             for key, value in vars.items():
