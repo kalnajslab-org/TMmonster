@@ -248,6 +248,7 @@ def ecu_scaled_vars_v6(raw_vars):
         'rs41_hum': raw_vars['rs41_hum'] / 100.0,
         'rs41_hst': raw_vars['rs41_hst'],
         'rs41_pres': raw_vars['rs41_pres'] / 100.0,
+        'rs41_magXY': (raw_vars['rs41_magXY'] / 255.0)*2000.0-1000.0,
         'rs41_pcb_h': bool(raw_vars['rs41_pcb_h']),
         'tsen_airt': raw_vars['tsen_airt'],
         'tsen_ptemp': raw_vars['tsen_ptemp'],

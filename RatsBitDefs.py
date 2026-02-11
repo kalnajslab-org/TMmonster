@@ -308,6 +308,7 @@ ecu_bits = {
         'u10'  # rs41_hum (10 bits)
         'u8'   # rs41_hst (8 bits)
         'u17'  # rs41_pres (17 bits)
+        'u8'   # rs41_magXY (8 bits)
         'u1'   # rs41_pcb_h (1 bit)
         'u12'  # tsen_airt (12 bits)
         'u24'  # tsen_ptemp (24 bits)
@@ -484,6 +485,7 @@ ecu_field_names = {
         'rs41_hum', 
         'rs41_hst', 
         'rs41_pres', 
+        'rs41_magXY',
         'rs41_pcb_h', 
         'tsen_airt', 
         'tsen_ptemp', 
