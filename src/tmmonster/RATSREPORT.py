@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
 import sys
 import bitstruct
-from RatsBitDefs import *
-from RatsScaledVars import *
-from TMCSV import print_list_csv
+from .RatsBitDefs import *
+from .RatsScaledVars import *
+from .TMCSV import print_list_csv
 
 def decode_payload(
     payload: bytes,

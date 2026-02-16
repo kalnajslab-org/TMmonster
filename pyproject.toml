@@ -1,7 +1,12 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "tmdecoder"
+name = "tmmonster"
 version = "0.1.0"
 description = "Decode LASP-Strateole2 Telemetry Messages and RATSReport TeleMessages."
+readme = "README.md"
 authors = [
     { name = "LASP Strateole2 Team" }
 ]
@@ -11,6 +16,9 @@ dependencies = [
     "xmltodict"
 ]
 
+[project.scripts]
+tmmonster = "tmmonster.TMmonster:cli_main"
+
 [project.optional-dependencies]
 dev = [
     "pytest",
@@ -18,6 +26,12 @@ dev = [
     "isort",
     "flake8"
 ]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.black]
 line-length = 88

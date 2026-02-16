@@ -19,10 +19,32 @@ The `RATSReport` contains a bit of metadata. Espcially important fields are:
    this byte.
 - `num_ecu_records`: The number of `ECUReport`records. It can be zero.
 
-## Running
+## Install and Run
+
+### 1) Install from GitHub and run
 
 ```sh
-python3 TMmonster.py <file>
+python3 -m pip install "git+https://github.com/kalnajslab-org/TMmonster.git"
+TMmonster 
+```
+
+### 2) Install from local repository as editable and run
+
+```sh
+python3 -m pip install -e .
+TMmonster
+```
+
+### 3) Run from local repository without installing
+
+```sh
+python3 TMmonster.py
+```
+
+### 4) Uninstall TMmonster
+
+```sh
+python3 -m pip uninstall tmmonster
 ```
 
 ## Report Versions
