@@ -1,3 +1,3 @@
-# RatsTM package init
+# TMmonster package init
 
-from .RatsTM import main
+from .TMmonster import main

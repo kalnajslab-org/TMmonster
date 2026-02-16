@@ -1,4 +1,4 @@
-# RatsTM
+# TMmonster
 
 This is a prototype app for decoding RATSReport TeleMessages. It uses
 the handy python `bitstruct` module.
@@ -22,12 +22,12 @@ The `RATSReport` contains a bit of metadata. Espcially important fields are:
 ## Running
 
 ```sh
-python3 RatsTM.py <file>
+python3 TMmonster.py <file>
 ```
 
 ## Report Versions
 
-`RatsTM` can decode TMs of varying versions.
+`TMmonster` can decode TMs of varying versions.
 
 Both `RATSReport` and `ECUReport` contain version numbers. The version must appear at the
 same location (first four bits) for all reports. (Note that we are limited version values < 16).

@@ -1,5 +1,5 @@
 import argparse
-from .RatsTM import main
+from .TMmonster import main
 
 def cli():
     parser = argparse.ArgumentParser(description="Decode RATS TM binary files.")
