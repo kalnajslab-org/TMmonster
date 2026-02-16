@@ -1,6 +1,6 @@
 # TMmonster
 
-This is a prototype app for decoding RATSReport TeleMessages. It uses
+This is an application for decoding Strateole2 TeleMessages. It uses
 the handy python `bitstruct` module.
 
 `bitstruct` lets you extract arbitrary bit fields from a vector
@@ -21,14 +21,14 @@ The `RATSReport` contains a bit of metadata. Espcially important fields are:
 
 ## Install and Run
 
-### 1) Install from GitHub and run
+### 1) Install as a Python package from GitHub and run
 
 ```sh
 python3 -m pip install "git+https://github.com/kalnajslab-org/TMmonster.git"
 TMmonster 
 ```
 
-### 2) Install from local repository as editable and run
+### 2) Install as a Python package from local repository as editable and run
 
 ```sh
 python3 -m pip install -e .
