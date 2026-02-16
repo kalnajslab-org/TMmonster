@@ -10,7 +10,7 @@ import sys
 import xmltodict
 import argparse
 import os
-import RATSReport
+import RATSREPORT
 import RATSTCACK
 import MCBREPORT
 
@@ -143,7 +143,7 @@ def main(args):
                                 print(f"Binary payload not found for {report_type}, can't read headers or data")
                                 continue
                         if payload:
-                            RATSReport.decode_payload(payload,args.headers, args.payload, first_file, args.csv, args.float_format)
+                            RATSREPORT.decode_payload(payload,args.headers, args.payload, first_file, args.csv, args.float_format)
                         payload_processed = True
 
                     if report_type == "RATSTCACK":
