@@ -71,6 +71,7 @@ rats_bits = {
     's32'  # gps lat (32 bits)
     's32'  # gps lon (32 bits)
     'u16'  # gps alt (16 bits)
+    'u16'  # reel revolutions (16 bits)
     )
 }
 
@@ -136,7 +137,8 @@ rats_field_names = {
     'inst_imon',
     'gps_lat',
     'gps_lon',
-    'gps_alt'
+    'gps_alt',
+    'reel_revs'
     ]
 }
 
