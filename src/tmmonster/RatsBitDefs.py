@@ -68,6 +68,9 @@ rats_bits = {
     'u10'  # lora_rssi (10 bits)
     'u10'  # lora_snr (10 bits)
     'u11'  # inst_imon (11 bits)
+    's32'  # gps lat (32 bits)
+    's32'  # gps lon (32 bits)
+    'u16'  # gps alt (16 bits)
     )
 }
 
@@ -131,6 +134,9 @@ rats_field_names = {
     'lora_rssi',
     'lora_snr',
     'inst_imon',
+    'gps_lat',
+    'gps_lon',
+    'gps_alt'
     ]
 }
 

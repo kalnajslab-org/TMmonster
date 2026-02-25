@@ -67,7 +67,10 @@ def rats_scaled_vars_v4(raw_vars):
         'cpu_temp': raw_vars.get('cpu_temp') / 10.0 - 100.0,
         'lora_rssi': raw_vars.get('lora_rssi') / 10.0 - 100.0,
         'lora_snr': raw_vars.get('lora_snr') / 10.0 - 70.0,
-        'inst_imon': raw_vars.get('inst_imon') / 10.0
+        'inst_imon': raw_vars.get('inst_imon') / 10.0,
+        'gps_lat': raw_vars.get('gps_lat') * 1.0e-6,
+        'gps_lon': raw_vars.get('gps_lon') * 1.0e-6,
+        'gps_alt': raw_vars.get('gps_alt') * 1.0
     }
 
 def ecu_scaled_vars_v1(raw_vars):
