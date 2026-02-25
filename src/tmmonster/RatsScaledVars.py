@@ -71,7 +71,7 @@ def rats_scaled_vars_v4(raw_vars):
         'gps_lat': raw_vars.get('gps_lat') * 1.0e-6,
         'gps_lon': raw_vars.get('gps_lon') * 1.0e-6,
         'gps_alt': raw_vars.get('gps_alt') * 1.0,
-        'reel_revs': 100 -raw_vars.get('reel_revs')/100.0
+        'reel_revs': 100-raw_vars.get('reel_revs')/10.0
     }
 
 def ecu_scaled_vars_v1(raw_vars):
