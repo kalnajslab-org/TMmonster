@@ -64,17 +64,31 @@ def extractTMxml(all_bytes: bytes) -> dict:
     Extracts and parses the <TM>...</TM> XML section from the given bytes.
     Returns the parsed XML as a dictionary.
     """
-    xml_start = all_bytes.find(b"<TM>")
-    if xml_start == -1:
-        print("XML section start not found")
+    tm_start = all_bytes.find(b"<TM>")
+    if tm_start == -1:
+        print("<TM> not found")
         return {}
-    xml_end = all_bytes.find(b"</TM>")
-    if xml_end == -1:
-        print("XML section not found")
+    tm_end = all_bytes.find(b"</TM>")
+    if tm_end == -1:
+        print("</TM> not found")
         return {}
-    xml_end += 5  # include the </TM> tag
-    xml_str = all_bytes[xml_start:xml_end].decode('utf-8')
-    xml_dict = xmltodict.parse(xml_str)
+    tm_end += 5  # include the </TM> tag
+    tm_str = all_bytes[tm_start:tm_end].decode('utf-8')
+    xml_dict = xmltodict.parse(tm_str)
+
+    crc_start = all_bytes.find(b"<CRC>")
+    if crc_start == -1:
+        print("<CRC> not found")
+        return {}
+    crc_end = all_bytes.find(b"</CRC>")
+    if crc_end == -1:
+        print("</CRC> not found")
+        return {}
+    crc_end += 6  # include the </CRC> tag
+    crc_dict = xmltodict.parse(all_bytes[crc_start:crc_end].decode('utf-8'))
+    if crc_dict:
+        xml_dict['CRC'] = crc_dict.get('CRC', {})
+
     return xml_dict
 
 def make_summary(xml_dict: dict, file_path: str) -> str:
@@ -82,6 +96,7 @@ def make_summary(xml_dict: dict, file_path: str) -> str:
     Generates a single line CSV summary for the given TM XML dictionary.
     """
     tm_section = xml_dict.get('TM', {})
+    crc_section = xml_dict.get('CRC')
     state_mess1 = tm_section.get('StateMess1', '')
     state_flag1 = tm_section.get('StateFlag1', '')
     state_mess2 = tm_section.get('StateMess2', '')
@@ -89,12 +104,14 @@ def make_summary(xml_dict: dict, file_path: str) -> str:
     state_mess3 = tm_section.get('StateMess3', '')
     state_flag3 = tm_section.get('StateFlag3', '')
     length = int(tm_section.get('Length', '0'))
+    crc = crc_section
 
     summary = ''
     summary += f'\"{state_mess1}\",\"{state_flag1}\",'
     summary += f'\"{state_mess2}\",\"{state_flag2}\",'
     summary += f'\"{state_mess3}\",\"{state_flag3}\",'
     summary += f'{length},'
+    summary += f'\"{crc}\",'
     summary += f'\"{file_path}\"'
     return summary
 
