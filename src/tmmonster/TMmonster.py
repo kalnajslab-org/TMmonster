@@ -42,6 +42,7 @@ def parse_args():
     parser.add_argument("--headers", action="store_true", help="Print TM XML section and report headers")
     parser.add_argument("--payload", action="store_true", help="Print the decoded payload")
     parser.add_argument("--summary", action="store_true", help="Print a single line summary for each file")
+    parser.add_argument("--absolute-paths", action="store_true", help="Print absolute file paths in summary view (default: filename only)")
     parser.add_argument("--csv", action="store_true", help="Output the payload values in CSV format")
     parser.add_argument("--float-format", type=str, help="Format string for printing CSV floats (e.g., .3f, .6g)")
     args = parser.parse_args()
@@ -95,8 +96,12 @@ def make_summary(xml_dict: dict, file_path: str) -> str:
     """
     Generates a single line CSV summary for the given TM XML dictionary.
     """
+
+    
     tm_section = xml_dict.get('TM', {})
-    crc_section = xml_dict.get('CRC')
+    crc = xml_dict.get('CRC')
+
+    msg = tm_section.get('Msg', '')
     state_mess1 = tm_section.get('StateMess1', '')
     state_flag1 = tm_section.get('StateFlag1', '')
     state_mess2 = tm_section.get('StateMess2', '')
@@ -104,15 +109,16 @@ def make_summary(xml_dict: dict, file_path: str) -> str:
     state_mess3 = tm_section.get('StateMess3', '')
     state_flag3 = tm_section.get('StateFlag3', '')
     length = int(tm_section.get('Length', '0'))
-    crc = crc_section
+
 
     summary = ''
-    summary += f'\"{state_mess1}\",\"{state_flag1}\",'
-    summary += f'\"{state_mess2}\",\"{state_flag2}\",'
-    summary += f'\"{state_mess3}\",\"{state_flag3}\",'
-    summary += f'{length},'
-    summary += f'\"{crc}\",'
-    summary += f'\"{file_path}\"'
+    summary += f'Msg:"{msg}",'
+    summary += f'StateMess1:"{state_mess1}",StateFlag1:"{state_flag1}",'
+    summary += f'StateMess2:"{state_mess2}",StateFlag2:"{state_flag2}",'
+    summary += f'StateMess3:"{state_mess3}",StateFlag3:"{state_flag3}",'
+    summary += f'Length:{length},'
+    summary += f'CRC:"{crc}",'
+    summary += f'FilePath:"{file_path}"'
     return summary
 
 def main(args):
@@ -137,7 +143,8 @@ def main(args):
                 if not args.report_type or args.report_type in report_type:
 
                     if args.summary:
-                        print(make_summary(xml_dict, tm_file.name))
+                        file_label = tm_file.name if args.absolute_paths else os.path.basename(tm_file.name)
+                        print(make_summary(xml_dict, file_label))
 
                     if args.headers:
                         print("----- TM XML section:")
