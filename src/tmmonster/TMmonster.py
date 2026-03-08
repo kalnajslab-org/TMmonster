@@ -15,6 +15,7 @@ from . import RATSREPORT
 from . import RATSTCACK
 from . import RATSEEPROM
 from . import MCBREPORT
+from . import MCBEEPROM
 
 # The RATSReport contains a bit-packed RATSReport header and a series of ECUReports.
 #
@@ -194,6 +195,14 @@ def main(args):
                                 continue
                         if args.payload:
                             RATSEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
+                        first_file = False
+                        payload_processed = True
+
+                    if report_type == "MCBEEPROM":
+                        if args.payload and not payload:
+                                continue
+                        if args.payload:
+                            MCBEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
                         first_file = False
                         payload_processed = True
 
