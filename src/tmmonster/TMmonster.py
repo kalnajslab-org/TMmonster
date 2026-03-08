@@ -7,6 +7,7 @@
 # 
 
 import sys
+import traceback
 import xmltodict
 import argparse
 import os
@@ -169,6 +170,7 @@ def main(args):
                                 continue
                         if payload:
                             RATSREPORT.decode_payload(payload,args.headers, args.payload, first_file, args.csv, args.float_format)
+                        first_file = False
                         payload_processed = True
 
                     if report_type == "RATSTCACK":
@@ -176,6 +178,7 @@ def main(args):
                                 continue
                         if args.payload:
                             RATSTCACK.decode_payload(payload, args.headers, args.payload, first_file, args.csv)
+                        first_file = False
                         payload_processed = True
 
                     if report_type == "RATSTEXT":
@@ -183,6 +186,7 @@ def main(args):
                                 continue
                         if args.payload:
                             RATSTCACK.decode_payload(payload, args.headers, args.payload, first_file, args.csv)
+                        first_file = False
                         payload_processed = True
 
                     if report_type == "RATSEEPROM":
@@ -190,6 +194,7 @@ def main(args):
                                 continue
                         if args.payload:
                             RATSEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
+                        first_file = False
                         payload_processed = True
 
                     if report_type == "MCBREPORT":
@@ -206,6 +211,18 @@ def main(args):
                         print(f"{report_type} payload processing not yet implemented.")
             except Exception as e:
                 print(f"Error processing file {tm_file.name}: {e}", file=sys.stderr)
+                exc_type, exc_value, exc_tb = sys.exc_info()
+                tb_entries = traceback.extract_tb(exc_tb) if exc_tb else []
+                if tb_entries:
+                    last = tb_entries[-1]
+                    print(
+                        f"Exception origin: {last.filename}:{last.lineno}",
+                        file=sys.stderr,
+                    )
+                    if last.line:
+                        print(f"Python line: {last.line.strip()}", file=sys.stderr)
+                print("Traceback:", file=sys.stderr)
+                traceback.print_exception(exc_type, exc_value, exc_tb, file=sys.stderr)
 
 def cli_main():
     args = parse_args()
