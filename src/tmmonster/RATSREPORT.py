@@ -25,8 +25,11 @@ def decode_payload(
         print(f'No scaling function for RATSREPORT header version {rats_report_ver}')
         sys.exit(1)
     scaled_rats_vars = scaling_function(rats_report_header)
-    utc_dt_object = datetime.fromtimestamp(int(scaled_rats_vars['epoch_time']), tz=timezone.utc)
-    iso_format_utc = utc_dt_object.isoformat()+'Z'
+    if 'epoch_time' in scaled_rats_vars:
+        utc_dt_object = datetime.fromtimestamp(int(scaled_rats_vars['epoch_time']), tz=timezone.utc)
+        iso_format_utc = utc_dt_object.isoformat()+'Z'
+    else:
+        iso_format_utc = None
 
     if print_headers:
         print(f'RATSREPORT header version: {rats_report_ver}')
@@ -63,8 +66,8 @@ def decode_payload(
             break
 
         if first_file and csv_output and record_num == 0:
-            csv_col_names = 'tm_time_utc'
-            csv_col_names += ',' + ','.join(rats_field_names[rats_report_ver])
+            csv_col_names = ('tm_time_utc,' if iso_format_utc is not None else '')
+            csv_col_names += ','.join(rats_field_names[rats_report_ver])
             csv_col_names += ',' + ','.join(ecu_field_names[ecu_record_ver])
             print(csv_col_names)
 
@@ -79,7 +82,7 @@ def decode_payload(
         scaled_ecu_vars = scaling_function(vars)
 
         if csv_output:
-            csv_values = [iso_format_utc]
+            csv_values = ([iso_format_utc] if iso_format_utc is not None else [])
             csv_values += [scaled_rats_vars[field] for field in rats_field_names[rats_report_ver]]
             csv_values += [scaled_ecu_vars[field] for field in ecu_field_names[ecu_record_ver]]    
             print_list_csv(data=csv_values, float_fmt=float_format)
