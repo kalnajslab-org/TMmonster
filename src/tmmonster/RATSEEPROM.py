@@ -5,6 +5,7 @@ from .RatsBitDefs import *
 from .RatsScaledVars import *
 from .TMCSV import print_list_csv
 
+# The CONFIG_VERSION is included in the data; the BASE_ADDRESS is not.
 # From RATSConfigs.h (version 0x000C):
     # static const uint16_t CONFIG_VERSION = 0x000C;
     # static const uint16_t BASE_ADDRESS = 0x0000;
@@ -18,20 +19,6 @@ from .TMCSV import print_list_csv
     # EEPROMData<bool> real_time_mcb;
     # EEPROMData<uint8_t> paired_ecu;     # ECU ID to pair with
 
-# The CONFIG_VERSION is part of the data; the BASE_ADDRESS is not.
-rats_eeprom_bits = {
-    0x000C: (
-        '>'     # little-endian
-        'u16'   # config version
-        'u16'   # data_proc_method
-        'f32'   # ecu_tempC
-        'f32'   # deploy_velocity
-        'f32'   # retract_velocity
-        'u16'   # motion_timeout
-        'u8'    # real_time_mcb
-        'u8'    # paired_ecu
-    )
-}
 rats_eeprom_field_names = {
     0x000C: [
         'config_version',
