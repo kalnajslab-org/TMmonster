@@ -1,6 +1,6 @@
 # TMmonster
 
-This is an application for decoding Strateole2 TeleMessages. It uses
+This is an application for decoding StratoCore TeleMessages. It uses
 the handy python `bitstruct` module.
 
 `bitstruct` lets you extract arbitrary bit fields from a vector
@@ -64,6 +64,27 @@ and functions must be modified whenever the version number `<n>` increases for:
     - Add an entry to `ecu_bits[<n>]`.
     - Add an entry to `ecu_field_names[<n>]`.
     - Add a scaling function `ecu_scaled_vars_v<n>`
+
+## View TM Errors
+
+Sometimes one TM out of many may become corrupted, and you need a quick way to find out which one
+is causing a problem. `TMmonster` raises an exception on decoding errors, prints a traceback, and 
+proceeds. Since the exception is printed to stderr, you can use `tmmonster * --sum  --pay >/dev/null`
+to find and print just the TMs with errors:
+
+```bash
+tmmonster * --sum  --pay >/dev/null                    
+Error processing file /Users/charlie/Work/LASP/Strateole2/TestData/RATS/RATS_2026-03-08T14-04-11/TM/TM_2026-03-08T19-02-27.RATS.dat: index out of range
+Exception origin: /Users/charlie/Work/LASP/Strateole2/Apps/TMmonster/src/tmmonster/RATSEEPROM.py:62
+Python line: eeprom['paired_ecu'] = payload[19]
+Traceback:
+Traceback (most recent call last):
+  File "/Users/charlie/Work/LASP/Strateole2/Apps/TMmonster/src/tmmonster/TMmonster.py", line 197, in main
+    RATSEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
+  File "/Users/charlie/Work/LASP/Strateole2/Apps/TMmonster/src/tmmonster/RATSEEPROM.py", line 62, in decode_payload
+    eeprom['paired_ecu'] = payload[19]
+IndexError: index out of range
+```
 
 ## bitstruct
 
