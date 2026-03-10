@@ -17,6 +17,8 @@ from . import RATSTCACK
 from . import RATSEEPROM
 from . import MCBREPORT
 from . import MCBEEPROM
+from . import LPCRS41
+from . import LPCOPC
 
 # The RATSReport contains a bit-packed RATSReport header and a series of ECUReports.
 #
@@ -109,7 +111,7 @@ def make_summary(xml_dict: dict, file_path: str) -> str:
     
     tm_section = xml_dict.get('TM', {})
     crc = xml_dict.get('CRC')
-
+    inst = tm_section.get('Inst')
     msg = tm_section.get('Msg', '')
     state_mess1 = tm_section.get('StateMess1', '')
     state_flag1 = tm_section.get('StateFlag1', '')
@@ -119,8 +121,8 @@ def make_summary(xml_dict: dict, file_path: str) -> str:
     state_flag3 = tm_section.get('StateFlag3', '')
     length = int(tm_section.get('Length', '0'))
 
-
     summary = ''
+    summary += f'Inst:"{inst}",'
     summary += f'Msg:"{msg}",'
     summary += f'StateMess1:"{state_mess1}",StateFlag1:"{state_flag1}",'
     summary += f'StateMess2:"{state_mess2}",StateFlag2:"{state_flag2}",'
@@ -130,12 +132,30 @@ def make_summary(xml_dict: dict, file_path: str) -> str:
     summary += f'FilePath:"{file_path}"'
     return summary
 
+def get_report_type(xml_dict: dict) -> str:
+    """
+    Determines the report type from the TM XML dictionary.
+    """
+
+    instrument = xml_dict['TM']['Inst']
+    if instrument == "RATS":
+        return xml_dict['TM']['StateMess1']
+    elif instrument == "LPC":
+        if xml_dict['TM']['StateMess2'] == "RS41":
+            return "LPCRS41"
+        else:
+            return "LPCOPC"
+    elif instrument == "RACHUTS":
+        return xml_dict['TM']['StateMess3']
+
+    return None
+
 def main(args):
     first_file = True
 
-    for tm_file in args.tm_file:
-        tm_file = os.path.abspath(tm_file)
-        with open(tm_file, "rb") as tm_file:
+    for filename in args.tm_file:
+        tm_filename = os.path.abspath(filename)
+        with open(tm_filename, "rb") as tm_file:
             try:
                 # Read the entire file
                 all_bytes = tm_file.read()
@@ -145,7 +165,7 @@ def main(args):
                     continue
 
                 # Find the report type in this TM
-                report_type = xml_dict['TM']['StateMess1']
+                report_type = get_report_type(xml_dict)
 
                 # Only process the report type(s) specified by the user. 
                 # If no report type is specified, process all report types.
@@ -209,6 +229,23 @@ def main(args):
                                 continue
                         if args.payload:
                             MCBEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
+                        first_file = False
+                        payload_processed = True
+
+                    if report_type == "LPCRS41":
+                        tm_file.close() # Close the file so that RS41msg can read it again
+                        if args.payload and not payload:
+                                continue
+                        if args.payload:
+                            LPCRS41.decode_payload(tm_filename, args.headers, args.payload, first_file, args.csv, args.float_format)
+                        first_file = False
+                        payload_processed = True
+
+                    if report_type == "LPCOPC":
+                        if args.payload and not payload:
+                                continue
+                        if args.payload:
+                            LPCOPC.decode_payload(tm_filename, args.headers, args.payload, first_file, args.csv, args.float_format)
                         first_file = False
                         payload_processed = True
 

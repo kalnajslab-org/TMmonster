@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tmmonster"
-version = "0.9.4"
+version = "0.9.5"
 description = "Decode LASP-Strateole2 Telemetry Messages."
 readme = "README.md"
 authors = [
