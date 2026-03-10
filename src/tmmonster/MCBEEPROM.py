@@ -121,6 +121,7 @@ def decode_payload(
     if csv_output:
         print_list_csv(data=list(eeprom.values()), float_fmt=float_format)
     else:
+        float_fmt = f'{{:{float_format}}}' if float_format else None
         for key, value in eeprom.items():
             if key == 'config_version':
                 print(f'{key}: 0x{value:04X}')
@@ -128,6 +129,8 @@ def decode_payload(
                 print(f'{key}: {value}  (disabled: FLT_MAX)')
             elif isinstance(value, float) and value == _FLT_MIN:
                 print(f'{key}: {value}  (disabled: FLT_MIN)')
+            elif isinstance(value, float) and float_fmt:
+                print(f'{key}: {float_fmt.format(value)}')
             else:
                 print(f'{key}: {value}')
         print()

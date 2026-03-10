@@ -104,6 +104,10 @@ def decode_payload(payload, csv_output, float_format):
             csv_values += [vars[field] for field in mcb_field_names]
             print_list_csv(csv_values, float_format)
         else:
+            float_fmt = f'{{:{float_format}}}' if float_format else None
             print(f"--- MCB record {i//records_size_bytes} of {num_records} ---")
             for key, value in vars.items():
-                print(f"{key}: {value}")
+                if isinstance(value, float) and float_fmt:
+                    print(f"{key}: {float_fmt.format(value)}")
+                else:
+                    print(f"{key}: {value}")

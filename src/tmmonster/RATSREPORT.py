@@ -32,10 +32,14 @@ def decode_payload(
         iso_format_utc = None
 
     if print_headers:
+        float_fmt = f'{{:{float_format}}}' if float_format else None
         print(f'RATSREPORT header version: {rats_report_ver}')
         print("----- RATSREPORT binary header:")
         for key, value in scaled_rats_vars.items():
-            print(f'{key}: {value}')
+            if isinstance(value, float) and float_fmt:
+                print(f'{key}: {float_fmt.format(value)}')
+            else:
+                print(f'{key}: {value}')
         print()
 
     if not print_payload:
@@ -87,6 +91,7 @@ def decode_payload(
             csv_values += [scaled_ecu_vars[field] for field in ecu_field_names[ecu_record_ver]]    
             print_list_csv(data=csv_values, float_fmt=float_format)
         else:
+            float_fmt = f'{{:{float_format}}}' if float_format else None
             print(f'----- ECU record {record_num}:')
             for key, value in scaled_ecu_vars.items():
                 if key in ['tsen_airt', 'tsen_ptemp', 'tsen_pres']:
@@ -95,6 +100,8 @@ def decode_payload(
                     print(f'{key}:   {value:06d}')
                 elif key in ['gps_time']:
                     print(f'{key}: {value:08d}')
+                elif isinstance(value, float) and float_fmt:
+                    print(f'{key}: {float_fmt.format(value)}')
                 else:
                     print(f'{key}: {value}')
             print()

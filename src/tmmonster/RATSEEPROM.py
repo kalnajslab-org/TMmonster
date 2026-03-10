@@ -69,6 +69,10 @@ def decode_payload(
         csv_values = [eeprom[field] for field in eeprom.keys()]
         print_list_csv(data=csv_values, float_fmt=float_format)
     else:
+        float_fmt = f'{{:{float_format}}}' if float_format else None
         for key, value in eeprom.items():
-            print(f'{key}: {value}')
+            if isinstance(value, float) and float_fmt:
+                print(f'{key}: {float_fmt.format(value)}')
+            else:
+                print(f'{key}: {value}')
         print()
