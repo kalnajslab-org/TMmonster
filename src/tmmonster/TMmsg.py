@@ -25,11 +25,11 @@ class TMmsg:
         '''Return the TM'''
         return self.delimitedText(b'<TM>', b'</TM>')
 
-    def parse_TM_xml(self) -> str:
+    def parse_TM_xml(self) -> dict:
         xml_txt = self.delimitedText(b'<TM>', b'</TM>')
         return xmltodict.parse(xml_txt)
 
-    def parse_CRC_xml(self) -> str:
+    def parse_CRC_xml(self) -> dict:
         xml_txt = self.delimitedText(b'<CRC>', b'</CRC>')
         return xmltodict.parse(xml_txt)
 

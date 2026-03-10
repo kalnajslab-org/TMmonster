@@ -1,6 +1,4 @@
 import struct
-import csv
-import io
 from .TMmsg import TMmsg
 from .TMCSV import print_list_csv
 

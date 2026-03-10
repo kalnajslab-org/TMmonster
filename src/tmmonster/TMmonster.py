@@ -132,7 +132,7 @@ def make_summary(xml_dict: dict, file_path: str) -> str:
     summary += f'FilePath:"{file_path}"'
     return summary
 
-def get_report_type(xml_dict: dict) -> str:
+def get_report_type(xml_dict: dict) -> str | None:
     """
     Determines the report type from the TM XML dictionary.
     """
@@ -201,33 +201,33 @@ def main(args):
                         payload_processed = True
 
                     if report_type == "RATSTCACK":
-                        if args.payload and not payload:
-                                continue
                         if args.payload:
+                            if not payload:
+                                continue
                             RATSTCACK.decode_payload(payload, args.headers, args.payload, first_file, args.csv)
                         first_file = False
                         payload_processed = True
 
                     if report_type == "RATSTEXT":
-                        if args.payload and not payload:
-                                continue
                         if args.payload:
+                            if not payload:
+                                continue
                             RATSTCACK.decode_payload(payload, args.headers, args.payload, first_file, args.csv)
                         first_file = False
                         payload_processed = True
 
                     if report_type == "RATSEEPROM":
-                        if args.payload and not payload:
-                                continue
                         if args.payload:
+                            if not payload:
+                                continue
                             RATSEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
                         first_file = False
                         payload_processed = True
 
                     if report_type == "MCBEEPROM":
-                        if args.payload and not payload:
-                                continue
                         if args.payload:
+                            if not payload:
+                                continue
                             MCBEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
                         first_file = False
                         payload_processed = True
