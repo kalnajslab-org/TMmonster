@@ -11,6 +11,7 @@ import traceback
 import xmltodict
 import argparse
 import os
+from importlib.metadata import version, PackageNotFoundError
 from . import RATSREPORT
 from . import RATSTCACK
 from . import RATSEEPROM
@@ -39,7 +40,12 @@ from . import MCBEEPROM
 # The scaling functions are defined in RatsScaledVars.py.
 
 def parse_args():
+    try:
+        pkg_version = version("tmmonster")
+    except PackageNotFoundError:
+        pkg_version = "unknown"
     parser = argparse.ArgumentParser(description="Decode RATS TM binary files.")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {pkg_version}")
     parser.add_argument("--report-type", type=str, default=None, help="Specify the type of report to process (e.g., RATSREPORT). If not specified, all report types will be processed.")
     parser.add_argument("tm_file", nargs='+', help="Path(s) to the TM file(s) or directories")
     parser.add_argument("--headers", action="store_true", help="Print TM XML section and report headers")
