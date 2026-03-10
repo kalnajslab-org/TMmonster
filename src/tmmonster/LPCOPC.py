@@ -4,35 +4,6 @@ import io
 from .TMmsg import TMmsg
 from .TMCSV import print_list_csv
 
-# HG bins cover the smaller particle sizes (high gain detector)
-# LG bins cover the larger particle sizes (low gain detector)
-# Each number is the left edge of the bin in nm.
-_HG_DIAMS = [275, 300, 325, 350, 375, 400, 450, 500, 550, 600, 650, 700, 750, 800, 900, 1000]
-_LG_DIAMS = [1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000, 6000, 8000, 10000, 13000, 16000, 24000, 24000]
-
-_HK_NAMES = ['unix_time', 'pump1_I_mA', 'pump2_I_mA', 'pha_I_mA',
-             'pha_12V_V', 'pha_3V3_V', 'cpu_V_V', 'input_V_V',
-             'flow_SLPM', 'pump1_PWM', 'pump2_PWM', 'pump1_T_degC',
-             'pump2_T_degC', 'laser_T_degC', 'pcb_T_degC', 'inlet_T_degC']
-
-_HK_UNITS = ['[unix_time]', '[mA]', '[mA]', '[mA]', '[V]', '[V]', '[V]', '[V]',
-             '[SLPM]', '[#]', '[#]', '[C]', '[C]', '[C]', '[C]', '[C]']
-
-
-def _bin_field_names(prefix, diams):
-    seen = {}
-    names = []
-    for d in diams:
-        key = f'{prefix}_{d}'
-        if key in seen:
-            seen[key] += 1
-            names.append(f'{key}_{seen[key]}')
-        else:
-            seen[key] = 0
-            names.append(key)
-    return names
-
-
 def decode_payload(
     filename: str,
     print_headers: bool,
@@ -60,6 +31,33 @@ def decode_payload(
                     print(f'  {k}: {val}')
                 print()
 
+# HG bins cover the smaller particle sizes (high gain detector)
+# LG bins cover the larger particle sizes (low gain detector)
+# Each number is the left edge of the bin in nm.
+_HG_DIAMS = [275, 300, 325, 350, 375, 400, 450, 500, 550, 600, 650, 700, 750, 800, 900, 1000]
+_LG_DIAMS = [1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000, 6000, 8000, 10000, 13000, 16000, 24000, 24000]
+
+_HK_NAMES = ['unix_time', 'pump1_I_mA', 'pump2_I_mA', 'pha_I_mA',
+             'pha_12V_V', 'pha_3V3_V', 'cpu_V_V', 'input_V_V',
+             'flow_SLPM', 'pump1_PWM', 'pump2_PWM', 'pump1_T_degC',
+             'pump2_T_degC', 'laser_T_degC', 'pcb_T_degC', 'inlet_T_degC']
+
+_HK_UNITS = ['[unix_time]', '[mA]', '[mA]', '[mA]', '[V]', '[V]', '[V]', '[V]',
+             '[SLPM]', '[#]', '[#]', '[C]', '[C]', '[C]', '[C]', '[C]']
+
+
+def _bin_field_names(prefix, diams):
+    seen = {}
+    names = []
+    for d in diams:
+        key = f'{prefix}_{d}'
+        if key in seen:
+            seen[key] += 1
+            names.append(f'{key}_{seen[key]}')
+        else:
+            seen[key] = 0
+            names.append(key)
+    return names
 
 class LPCmsg(TMmsg):
     def __init__(self, msg_filename: str):
@@ -145,24 +143,3 @@ class LPCmsg(TMmsg):
 
             records.append(r)
         return records
-
-    def csvText(self) -> list:
-        csv_io = io.StringIO()
-        csv_writer = csv.writer(csv_io, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        csv_writer.writerow(self.csvTitleFields())
-        csv_writer.writerow(self.csvGPSFields())
-        csv_writer.writerow(self.opcParamNames())
-        csv_writer.writerow(self.opcParamUnits())
-        for r in self.records:
-            csv_writer.writerow([r[v] for v in self.opcParamNames()])
-        return csv_io.getvalue().split('\r\n')
-
-    def printCsv(self):
-        for r in self.csvText():
-            print(r)
-
-    def saveCsv(self, out_filename: str) -> None:
-        with open(out_filename, 'w') as out_file:
-            for r in self.csvText():
-                out_file.write(r)
-                out_file.write('\n')
