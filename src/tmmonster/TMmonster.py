@@ -7,6 +7,7 @@
 # 
 
 import sys
+import json
 import traceback
 import xmltodict
 import argparse
@@ -56,6 +57,7 @@ def parse_args():
     parser.add_argument("--absolute-paths", action="store_true", help="Print absolute file paths in summary view (default: filename only)")
     parser.add_argument("--csv", action="store_true", help="Output the payload values in CSV format")
     parser.add_argument("--float-format", type=str, help="Format string for printing CSV floats (e.g., .3f, .6g)")
+    parser.add_argument("--count", action="store_true", help="Print a JSON tally of report types encountered")
     args = parser.parse_args()
 
     # Expand directories to include all files (not directories) inside them
@@ -152,6 +154,7 @@ def get_report_type(xml_dict: dict) -> str | None:
 
 def main(args):
     first_file = True
+    counts: dict[str, int] = {}
 
     for filename in args.tm_file:
         tm_filename = os.path.abspath(filename)
@@ -166,6 +169,7 @@ def main(args):
 
                 # Find the report type in this TM
                 report_type = get_report_type(xml_dict)
+                counts[report_type or "UNKNOWN"] = counts.get(report_type or "UNKNOWN", 0) + 1
 
                 # Only process the report type(s) specified by the user. 
                 # If no report type is specified, process all report types.
@@ -276,9 +280,13 @@ def main(args):
                 print("Traceback:", file=sys.stderr)
                 traceback.print_exception(exc_type, exc_value, exc_tb, file=sys.stderr)
 
+    return counts
+
 def cli_main():
     args = parse_args()
-    main(args)
+    counts = main(args)
+    if args.count:
+        print(json.dumps(counts, indent=2))
 
 if __name__ == "__main__":
     cli_main()
