@@ -107,32 +107,23 @@ def extractTMxml(all_bytes: bytes) -> dict:
 
 def make_summary(xml_dict: dict, file_path: str) -> str:
     """
-    Generates a single line CSV summary for the given TM XML dictionary.
+    Generates a single-line JSON summary for the given TM XML dictionary.
     """
-
-    
     tm_section = xml_dict.get('TM', {})
-    crc = xml_dict.get('CRC')
-    inst = tm_section.get('Inst')
-    msg = tm_section.get('Msg', '')
-    state_mess1 = tm_section.get('StateMess1', '')
-    state_flag1 = tm_section.get('StateFlag1', '')
-    state_mess2 = tm_section.get('StateMess2', '')
-    state_flag2 = tm_section.get('StateFlag2', '')
-    state_mess3 = tm_section.get('StateMess3', '')
-    state_flag3 = tm_section.get('StateFlag3', '')
-    length = int(tm_section.get('Length', '0'))
-
-    summary = ''
-    summary += f'Inst:"{inst}",'
-    summary += f'Msg:"{msg}",'
-    summary += f'StateMess1:"{state_mess1}",StateFlag1:"{state_flag1}",'
-    summary += f'StateMess2:"{state_mess2}",StateFlag2:"{state_flag2}",'
-    summary += f'StateMess3:"{state_mess3}",StateFlag3:"{state_flag3}",'
-    summary += f'Length:{length},'
-    summary += f'CRC:"{crc}",'
-    summary += f'FilePath:"{file_path}"'
-    return summary
+    record = {
+        "Inst":       tm_section.get('Inst'),
+        "Msg":        tm_section.get('Msg', ''),
+        "StateMess1": tm_section.get('StateMess1', ''),
+        "StateFlag1": tm_section.get('StateFlag1', ''),
+        "StateMess2": tm_section.get('StateMess2', ''),
+        "StateFlag2": tm_section.get('StateFlag2', ''),
+        "StateMess3": tm_section.get('StateMess3', ''),
+        "StateFlag3": tm_section.get('StateFlag3', ''),
+        "Length":     int(tm_section.get('Length', '0')),
+        "CRC":        xml_dict.get('CRC'),
+        "FilePath":   file_path,
+    }
+    return json.dumps(record, separators=(',', ':'))
 
 def get_report_type(xml_dict: dict) -> str | None:
     """
