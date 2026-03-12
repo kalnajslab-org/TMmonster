@@ -183,9 +183,7 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
 
     if report_type == "MCBEEPROM":
         if args.payload:
-            if not payload:
-                return first_file
-            MCBEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
+            MCBEEPROM.decode_payload(tm_filename, args.headers, args.payload, first_file, args.csv, args.float_format)
         first_file = False
         payload_processed = True
 

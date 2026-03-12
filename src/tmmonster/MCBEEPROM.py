@@ -1,5 +1,6 @@
 import sys
 import struct
+from .TMmsg import TMmsg
 from .TMCSV import print_list_csv
 
 # Sentinel values used in ConfigManagerMCB to mark a limit as "not in use"
@@ -90,30 +91,38 @@ _fields = [
 ]
 
 
+class MCBEEPROMmsg(TMmsg):
+    def __init__(self, msg_filename: str):
+        super().__init__(msg_filename)
+        self.eeprom = self._unpack()
+
+    def _unpack(self) -> dict:
+        p = self.bindata
+        eeprom = {'config_version': struct.unpack_from('<H', p, 0)[0]}
+        offset = 2  # skip the uint16_t version
+        for name, fmt in _fields:
+            eeprom[name] = struct.unpack_from(fmt, p, offset)[0]
+            offset += struct.calcsize(fmt)
+        return eeprom
+
+
 def decode_payload(
-    payload: bytes,
+    filename: str,
     print_headers: bool,
     print_payload: bool,
     first_file: bool,
     csv_output: bool,
     float_format: str
 ) -> None:
+    msg = MCBEEPROMmsg(filename)
+    eeprom = msg.eeprom
 
-    config_version = struct.unpack_from('<H', payload, 0)[0]
-
-    if config_version not in versions:
-        print(f'Unknown MCBEEPROM config version 0x{config_version:04X}')
+    if eeprom['config_version'] not in versions:
+        print(f'Unknown MCBEEPROM config version 0x{eeprom["config_version"]:04X}')
         sys.exit(1)
 
     if not print_payload:
         return
-
-    eeprom = {'config_version': config_version}
-    offset = 2  # skip the uint16_t version
-    for name, fmt in _fields:
-        size = struct.calcsize(fmt)
-        eeprom[name] = struct.unpack_from(fmt, payload, offset)[0]
-        offset += size
 
     if first_file and csv_output:
         print(','.join(eeprom.keys()))
