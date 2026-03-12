@@ -13,7 +13,8 @@ authors = [
 requires-python = ">=3.9"
 dependencies = [
     "bitstruct",
-    "xmltodict"
+    "xmltodict",
+    "numpy"
 ]
 
 [project.scripts]
