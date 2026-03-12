@@ -1,8 +1,6 @@
-from datetime import datetime, timezone
 import sys
 import struct
-from .RatsBitDefs import *
-from .RatsScaledVars import *
+from .TMmsg import TMmsg
 from .TMCSV import print_list_csv
 
 # The CONFIG_VERSION is included in the data; the BASE_ADDRESS is not.
@@ -34,40 +32,47 @@ rats_eeprom_field_names = {
 
 versions = [0x000C]
 
+class RATSEEPROMmsg(TMmsg):
+    def __init__(self, msg_filename: str):
+        super().__init__(msg_filename)
+        self.eeprom = self._unpack()
+
+    def _unpack(self) -> dict:
+        p = self.bindata
+        return {
+            'config_version':  struct.unpack('<H', p[0:2])[0],
+            'data_proc_method': struct.unpack('<H', p[2:4])[0],
+            'ecu_tempC':        struct.unpack('<f', p[4:8])[0],
+            'deploy_velocity':  struct.unpack('<f', p[8:12])[0],
+            'retract_velocity': struct.unpack('<f', p[12:16])[0],
+            'motion_timeout':   struct.unpack('<H', p[16:18])[0],
+            'real_time_mcb':    bool(p[18]),
+            'paired_ecu':       p[19],
+        }
+
 def decode_payload(
-    payload: bytes,
+    filename: str,
     print_headers: bool,
     print_payload: bool,
     first_file: bool,
     csv_output: bool,
     float_format: str
 ) -> None:
-    
-    eeprom = {}
-    eeprom['config_version'] = struct.unpack('<H', payload[0:2])[0]
+    msg = RATSEEPROMmsg(filename)
+    eeprom = msg.eeprom
 
     if eeprom['config_version'] not in versions:
         print(f'Unknown RATSEEPROM header version {eeprom["config_version"]}')
         sys.exit(1)
 
     if not print_payload:
-        return  
-
-    eeprom['data_proc_method'] = struct.unpack('<H', payload[2:4])[0]
-    eeprom['ecu_tempC'] = struct.unpack('<f', payload[4:8])[0]
-    eeprom['deploy_velocity'] = struct.unpack('<f', payload[8:12])[0]
-    eeprom['retract_velocity'] = struct.unpack('<f', payload[12:16])[0]
-    eeprom['motion_timeout'] = struct.unpack('<H',payload[16:18])[0]
-    eeprom['real_time_mcb'] = bool(payload[18])
-    eeprom['paired_ecu'] = payload[19]
+        return
 
     if first_file and csv_output:
-        csv_col_names = ','.join(name for name in eeprom.keys())
-        print(csv_col_names)
+        print(','.join(eeprom.keys()))
 
     if csv_output:
-        csv_values = [eeprom[field] for field in eeprom.keys()]
-        print_list_csv(data=csv_values, float_fmt=float_format)
+        print_list_csv(data=list(eeprom.values()), float_fmt=float_format)
     else:
         float_fmt = f'{{:{float_format}}}' if float_format else None
         for key, value in eeprom.items():

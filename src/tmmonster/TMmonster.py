@@ -177,9 +177,7 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
 
     if report_type == "RATSEEPROM":
         if args.payload:
-            if not payload:
-                return first_file
-            RATSEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
+            RATSEEPROM.decode_payload(tm_filename, args.headers, args.payload, first_file, args.csv, args.float_format)
         first_file = False
         payload_processed = True
 
