@@ -143,95 +143,97 @@ def get_report_type(xml_dict: dict) -> str | None:
 
     return None
 
-def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str, tm_file, args, first_file: bool) -> bool:
+def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str, tm_file, args, csv_header_printed: set) -> set:
     """
     Runs the appropriate decoder for the given report type.
-    Returns the updated first_file flag.
+    Returns the updated set of report types that have already printed a CSV header.
     """
     payload_processed = False
+    first_file = report_type not in csv_header_printed
 
     if report_type == "RATSREPORT":
         if (args.payload or args.headers) and not payload:
             print(f"Binary payload not found for {report_type}, can't read headers or data")
-            return first_file
+            return csv_header_printed
         if payload:
             RATSREPORT.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
         if args.csv:
-            first_file = False
+            csv_header_printed.add(report_type)
         payload_processed = True
 
     if report_type == "RATSTCACK":
         if args.payload:
             if not payload:
-                return first_file
+                return csv_header_printed
             RATSTCACK.decode_payload(payload, args.headers, args.payload, first_file, args.csv)
         if args.csv:
-            first_file = False
+            csv_header_printed.add(report_type)
         payload_processed = True
 
     if report_type == "RATSTEXT":
         if args.payload:
             if not payload:
-                return first_file
+                return csv_header_printed
             RATSTCACK.decode_payload(payload, args.headers, args.payload, first_file, args.csv)
         if args.csv:
-            first_file = False
+            csv_header_printed.add(report_type)
         payload_processed = True
 
     if report_type == "RATSEEPROM":
         if args.payload:
             if not payload:
-                return first_file
+                return csv_header_printed
             RATSEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
         if args.csv:
-            first_file = False
+            csv_header_printed.add(report_type)
         payload_processed = True
 
     if report_type == "MCBEEPROM":
         if args.payload:
             if not payload:
-                return first_file
+                return csv_header_printed
             MCBEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
         if args.csv:
-            first_file = False
+            csv_header_printed.add(report_type)
         payload_processed = True
 
     if report_type == "LPCRS41":
         tm_file.close()  # Close the file so that RS41msg can read it again
         if args.payload:
             if not payload:
-                return first_file
+                return csv_header_printed
             LPCRS41.decode_payload(tm_filename, args.headers, args.payload, first_file, args.csv, args.float_format)
         if args.csv:
-            first_file = False
+            csv_header_printed.add(report_type)
         payload_processed = True
 
     if report_type == "LPCOPC":
         if args.payload:
             if not payload:
-                return first_file
+                return csv_header_printed
             LPCOPC.decode_payload(tm_filename, args.headers, args.payload, first_file, args.csv, args.float_format)
         if args.csv:
-            first_file = False
+            csv_header_printed.add(report_type)
         payload_processed = True
 
     if report_type == "MCBREPORT":
         if first_file and args.csv:
             print(MCBREPORT.csv_header())
-            first_file = False
+        if args.csv:
+            csv_header_printed.add(report_type)
         if args.payload:
             if not payload:
-                return first_file
+                return csv_header_printed
             MCBREPORT.decode_payload(payload, args.csv, args.float_format)
         payload_processed = True
 
     if args.payload and not payload_processed:
         print(f"{report_type} payload processing not yet implemented.")
 
-    return first_file
+    return csv_header_printed
 
 def main(args):
-    first_file = True
+    csv_header_printed: set[str] = set()
     counts: dict[str, int] = {}
 
     for filename in args.tm_file:
@@ -271,7 +273,7 @@ def main(args):
                             payload = all_bytes[payload_start:-5]  # Exclude the CRC and "END" marker
 
                     # Perform the appropriate decoding for this report type, if implemented
-                    first_file = run_decoder(report_type, payload, tm_filename, tm_file, args, first_file)
+                    csv_header_printed = run_decoder(report_type, payload, tm_filename, tm_file, args, csv_header_printed)
             except Exception as e:
                 print(f"Error processing file {tm_file.name}: {e}", file=sys.stderr)
                 exc_type, exc_value, exc_tb = sys.exc_info()
