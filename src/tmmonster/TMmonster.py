@@ -156,7 +156,8 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
             return first_file
         if payload:
             RATSREPORT.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
-        first_file = False
+        if args.csv:
+            first_file = False
         payload_processed = True
 
     if report_type == "RATSTCACK":
@@ -164,7 +165,8 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
             if not payload:
                 return first_file
             RATSTCACK.decode_payload(payload, args.headers, args.payload, first_file, args.csv)
-        first_file = False
+        if args.csv:
+            first_file = False
         payload_processed = True
 
     if report_type == "RATSTEXT":
@@ -172,7 +174,8 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
             if not payload:
                 return first_file
             RATSTCACK.decode_payload(payload, args.headers, args.payload, first_file, args.csv)
-        first_file = False
+        if args.csv:
+            first_file = False
         payload_processed = True
 
     if report_type == "RATSEEPROM":
@@ -180,7 +183,8 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
             if not payload:
                 return first_file
             RATSEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
-        first_file = False
+        if args.csv:
+            first_file = False
         payload_processed = True
 
     if report_type == "MCBEEPROM":
@@ -188,7 +192,8 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
             if not payload:
                 return first_file
             MCBEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
-        first_file = False
+        if args.csv:
+            first_file = False
         payload_processed = True
 
     if report_type == "LPCRS41":
@@ -197,7 +202,8 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
             if not payload:
                 return first_file
             LPCRS41.decode_payload(tm_filename, args.headers, args.payload, first_file, args.csv, args.float_format)
-        first_file = False
+        if args.csv:
+            first_file = False
         payload_processed = True
 
     if report_type == "LPCOPC":
@@ -205,7 +211,8 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
             if not payload:
                 return first_file
             LPCOPC.decode_payload(tm_filename, args.headers, args.payload, first_file, args.csv, args.float_format)
-        first_file = False
+        if args.csv:
+            first_file = False
         payload_processed = True
 
     if report_type == "MCBREPORT":
