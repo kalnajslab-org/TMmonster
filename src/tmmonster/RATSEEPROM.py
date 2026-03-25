@@ -11,7 +11,7 @@ from .TMCSV import print_list_csv
     # static const uint16_t BASE_ADDRESS = 0x0000;
 
     # ------------------ Configurations ------------------
-    # EEPROMData<uint16_t> data_proc_method;
+    # EEPROMData<uint16_t> decimate_factor;
     # EEPROMData<float> ecu_tempC;
     # EEPROMData<float> deploy_velocity;   # revs/min
     # EEPROMData<float> retract_velocity;  # revs/min
@@ -22,7 +22,7 @@ from .TMCSV import print_list_csv
 rats_eeprom_field_names = {
     0x000C: [
         'config_version',
-        'data_proc_method',
+        'decimate_factor',
         'ecu_tempC',
         'deploy_velocity',
         'retract_velocity',
@@ -53,7 +53,7 @@ def decode_payload(
     if not print_payload:
         return  
 
-    eeprom['data_proc_method'] = struct.unpack('<H', payload[2:4])[0]
+    eeprom['decimate_factor'] = struct.unpack('<H', payload[2:4])[0]
     eeprom['ecu_tempC'] = struct.unpack('<f', payload[4:8])[0]
     eeprom['deploy_velocity'] = struct.unpack('<f', payload[8:12])[0]
     eeprom['retract_velocity'] = struct.unpack('<f', payload[12:16])[0]
