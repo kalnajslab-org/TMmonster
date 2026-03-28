@@ -1,18 +1,26 @@
 from datetime import datetime, timezone
 import sys
 import bitstruct
+from .TMmsg import TMmsg
 from .RatsBitDefs import *
 from .RatsScaledVars import *
 from .TMCSV import print_list_csv
 
+
+class RATSREPORTmsg(TMmsg):
+    pass
+
+
 def decode_payload(
-    payload: bytes,
+    filename: str,
     print_headers: bool,
     print_payload: bool,
     first_file: bool,
     csv_output: bool,
     float_format: str
 ) -> None:
+    payload = RATSREPORTmsg(filename).bindata
+
     rats_report_ver = bitstruct.unpack('>u4', payload[0:1])[0]
     if rats_report_ver not in rats_bits:
         print(f'Unknown RATSREPORT header version {rats_report_ver}')
@@ -88,7 +96,7 @@ def decode_payload(
         if csv_output:
             csv_values = ([iso_format_utc] if iso_format_utc is not None else [])
             csv_values += [scaled_rats_vars[field] for field in rats_field_names[rats_report_ver]]
-            csv_values += [scaled_ecu_vars[field] for field in ecu_field_names[ecu_record_ver]]    
+            csv_values += [scaled_ecu_vars[field] for field in ecu_field_names[ecu_record_ver]]
             print_list_csv(data=csv_values, float_fmt=float_format)
         else:
             float_fmt = f'{{:{float_format}}}' if float_format else None

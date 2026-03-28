@@ -151,11 +151,8 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
     payload_processed = False
 
     if report_type == "RATSREPORT":
-        if (args.payload or args.headers) and not payload:
-            print(f"Binary payload not found for {report_type}, can't read headers or data")
-            return first_file
-        if payload:
-            RATSREPORT.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
+        if args.payload or args.headers:
+            RATSREPORT.decode_payload(tm_filename, args.headers, args.payload, first_file, args.csv, args.float_format)
         first_file = False
         payload_processed = True
 
