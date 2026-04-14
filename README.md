@@ -47,6 +47,82 @@ python3 TMmonster.py
 python3 -m pip uninstall tmmonster
 ```
 
+## Usage
+
+```
+tmmonster [--report-type REPORT_TYPE] [--headers] [--payload] [--summary]
+          [--absolute-paths] [--csv] [--float-format FLOAT_FORMAT] [--count]
+          tm_file [tm_file ...]
+```
+
+`tm_file` can be one or more file paths, glob patterns, or directories.
+When a directory is given, all files inside it are processed.
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--report-type TYPE` | Process only reports of this type (e.g. `RATSREPORT`, `MCBREPORT`). Default: all types. |
+| `--headers` | Print the TM XML section and report headers. |
+| `--payload` | Print the decoded payload fields. |
+| `--summary` | Print a one-line summary for each file. |
+| `--absolute-paths` | Show absolute file paths in summary output (default: filename only). |
+| `--csv` | Output payload values in CSV format. |
+| `--float-format FMT` | Format string for CSV floats, e.g. `.3f`, `.6g`. |
+| `--count` | Print a JSON tally of report types encountered. |
+
+### Examples
+
+```sh
+# Human-readable payload for all files in a directory:
+tmmonster --payload /data/tm/
+
+# CSV output for RATSREPORT files only:
+tmmonster --payload --csv --report-type RATSREPORT /data/tm/
+
+# CSV with 4 significant figures, redirected to a file:
+tmmonster --payload --csv --float-format .4g /data/tm/ > output.csv
+
+# One-line summary across many files:
+tmmonster --summary TM_2026-03-25T*.dat
+
+# Count report types found in a directory:
+tmmonster --count /data/tm/
+```
+
+## tmmonster-batch
+
+`tmmonster-batch` is a companion tool that catalogs TM files by the timestamp
+embedded in their filename, groups them into fixed time windows, and runs
+`tmmonster` on each group — writing one output file per window.
+
+### Usage
+
+```sh
+# Process all .dat files in a directory, 1-hour windows:
+tmmonster-batch --dir /data/tm --window 1h -- --csv --payload
+
+# Explicit file list, 30-minute windows:
+tmmonster-batch --window 30m TM_2026-03-25T*.dat -- --csv --payload
+
+# Dry run — print commands without executing:
+tmmonster-batch --dir /data/tm --window 30m --dry-run -- --csv --payload
+```
+
+Arguments after `--` are passed directly to `tmmonster`.
+
+Each window produces an output file named `tmdata_YYYY-MM-DDTHH-MM-SS.csv`
+in the current directory. The extension can be changed with `--out-ext`.
+
+### Supported filename timestamp formats
+
+| Format | Example |
+|--------|---------|
+| `YYYY-MM-DDTHH-MM-SS-mmm` | `TM_2026-03-25T16-32-15-283.dat` |
+| `DD-Mon-YY_HH-MM-SS` | `TM_04-Mar-26_14-15-21.dat` |
+
+Files whose names contain no recognisable timestamp are skipped with a warning.
+
 ## Report Versions
 
 `TMmonster` can decode TMs of varying versions.
