@@ -47,7 +47,14 @@ def parse_args():
         pkg_version = version("tmmonster")
     except PackageNotFoundError:
         pkg_version = "unknown"
-    parser = argparse.ArgumentParser(description="Decode RATS TM binary files.")
+    parser = argparse.ArgumentParser(
+        description="Decode RATS TM binary files.",
+        epilog=(
+            "To process files in bulk, grouped into time windows, "
+            "see the companion tool: tmmonster-batch --help"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("--version", action="version", version=f"%(prog)s {pkg_version}")
     parser.add_argument("--report-type", type=str, default=None, help="Specify the type of report to process (e.g., RATSREPORT). If not specified, all report types will be processed.")
     parser.add_argument("tm_file", nargs='+', help="Path(s) to the TM file(s) or directories")
