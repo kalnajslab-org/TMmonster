@@ -18,6 +18,7 @@ from . import RATSTCACK
 from . import RATSEEPROM
 from . import MCBREPORT
 from . import MCBEEPROM
+from . import RPUREPORT
 from . import LPCRS41
 from . import LPCOPC
 
@@ -146,11 +147,11 @@ def get_report_type(xml_dict: dict) -> str | None:
         else:
             return "LPCOPC"
     elif instrument == "RACHUTS":
-        return xml_dict['TM']['StateMess3']
+        return xml_dict['TM']['StateMess1']
 
     return None
 
-def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str, tm_file, args, csv_header_printed: set) -> set:
+def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str, tm_file, args, csv_header_printed: set, xml_dict: dict) -> set:
     """
     Runs the appropriate decoder for the given report type.
     Returns the updated set of report types that have already printed a CSV header.
@@ -234,6 +235,20 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
             MCBREPORT.decode_payload(payload, args.csv, args.float_format)
         payload_processed = True
 
+    if report_type == "RPUREPORT":
+        if first_file and args.csv:
+            print(RPUREPORT.csv_header())
+        if args.csv:
+            csv_header_printed.add(report_type)
+        if args.payload:
+            if not payload:
+                return csv_header_printed
+            # The profile start reference (epoch, lat, lon) is carried in the
+            # TM's StateMess3; use it to reconstruct absolute time/position.
+            start = RPUREPORT.parse_start_values(xml_dict['TM'].get('StateMess3'))
+            RPUREPORT.decode_payload(payload, args.csv, args.float_format, start)
+        payload_processed = True
+
     if args.payload and not payload_processed:
         print(f"{report_type} payload processing not yet implemented.")
 
@@ -280,7 +295,7 @@ def main(args):
                             payload = all_bytes[payload_start:-5]  # Exclude the CRC and "END" marker
 
                     # Perform the appropriate decoding for this report type, if implemented
-                    csv_header_printed = run_decoder(report_type, payload, tm_filename, tm_file, args, csv_header_printed)
+                    csv_header_printed = run_decoder(report_type, payload, tm_filename, tm_file, args, csv_header_printed, xml_dict)
             except Exception as e:
                 print(f"Error processing file {tm_file.name}: {e}", file=sys.stderr)
                 exc_type, exc_value, exc_tb = sys.exc_info()
