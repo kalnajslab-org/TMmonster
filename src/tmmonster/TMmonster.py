@@ -73,7 +73,10 @@ def parse_args():
     expanded_files = []
     for path in args.tm_file:
         if os.path.isdir(path):
-            for entry in os.listdir(path):
+            # Sort entries so files are processed in name order. The TM
+            # filenames are zero-padded ISO-style timestamps, so name order is
+            # chronological order.
+            for entry in sorted(os.listdir(path)):
                 full_path = os.path.join(path, entry)
                 if os.path.isfile(full_path):
                     expanded_files.append(full_path)
