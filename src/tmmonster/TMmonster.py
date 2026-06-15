@@ -249,8 +249,10 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
                 return csv_header_printed
             # The profile start reference (epoch, lat, lon) is carried in the
             # TM's StateMess3; use it to reconstruct absolute time/position.
+            # The profile number is carried in StateMess2.
             start = RPUREPORT.parse_start_values(xml_dict['TM'].get('StateMess3'))
-            RPUREPORT.decode_payload(payload, args.csv, args.float_format, start)
+            profile = RPUREPORT.parse_profile(xml_dict['TM'].get('StateMess2'))
+            RPUREPORT.decode_payload(payload, args.csv, args.float_format, start, profile)
         payload_processed = True
 
     if report_type == "RPUSTATUS":

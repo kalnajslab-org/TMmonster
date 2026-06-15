@@ -104,19 +104,28 @@ rpu_slow_field_names = [
     'bat_t', 'pump_t', 'pcb_t', 'bat_v', 'heater_stat',
 ]
 
-# Absolute time/position reconstructed from the per-record deltas plus the
-# start reference (epoch/lat/lon) carried in the TM's StateMess3. Blank when no
-# start reference is supplied.
-rpu_start_field_names = ['tm_time_utc', 'epoch_time', 'lat', 'lon']
+# Per-TM context (not in the binary records): profile number from StateMess2,
+# and absolute time/position reconstructed from the per-record deltas plus the
+# start reference (epoch/lat/lon) from StateMess3. Blank when not available.
+rpu_start_field_names = ['profile', 'tm_time_utc', 'epoch_time', 'lat', 'lon']
 
-# CSV column order: absolute time/position first, then round_robin_idx and the
-# rest of the fast fields, then all slow fields (only the active slot's fields
-# are populated per row).
+# CSV column order: per-TM context first, then round_robin_idx and the rest of
+# the fast fields, then all slow fields (only the active slot's fields are
+# populated per row).
 rpu_csv_field_names = (
     rpu_start_field_names
     + [name for name in rpu_fast_field_names if name != 'version']
     + rpu_slow_field_names
 )
+
+
+def parse_profile(state_mess2):
+    '''
+    Extract the profile number from a RACHUTS RPUREPORT StateMess2 string,
+    e.g. "profile: 2 packet:1 records: 120". Returns an int or None.
+    '''
+    m = re.search(r'profile:\s*(\d+)', state_mess2 or '')
+    return int(m.group(1)) if m else None
 
 
 def parse_start_values(state_mess3):
@@ -213,7 +222,7 @@ def csv_header():
     return ','.join(rpu_csv_field_names)
 
 
-def decode_payload(payload, csv_output, float_format, start=None):
+def decode_payload(payload, csv_output, float_format, start=None, profile=None):
     num_records = len(payload) // RPU_RECORD_BYTES
     if num_records == 0:
         return
@@ -234,6 +243,8 @@ def decode_payload(payload, csv_output, float_format, start=None):
 
         fast_raw = bitstruct.unpack_dict(rpu_fast_bits, rpu_fast_field_names, record[:33])
         scaled = _scale_fast(fast_raw, start)
+        if profile is not None:
+            scaled['profile'] = profile
 
         idx = fast_raw['round_robin_idx']
         slot = rpu_slot_bits.get(idx)
