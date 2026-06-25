@@ -20,6 +20,7 @@ from . import MCBREPORT
 from . import MCBEEPROM
 from . import RPUREPORT
 from . import RPUSTATUS
+from . import RATCHUTSEEPROM
 from . import LPCRS41
 from . import LPCOPC
 
@@ -261,6 +262,15 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
                 print(f"Binary payload not found for {report_type}, can't read headers or data")
                 return csv_header_printed
             RPUSTATUS.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
+        if args.csv:
+            csv_header_printed.add(report_type)
+        payload_processed = True
+
+    if report_type == "RATCHUTSEEPROM":
+        if args.payload:
+            if not payload:
+                return csv_header_printed
+            RATCHUTSEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
         if args.csv:
             csv_header_printed.add(report_type)
         payload_processed = True
