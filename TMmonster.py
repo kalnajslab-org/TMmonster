@@ -10,7 +10,7 @@ def main() -> int:
     src_dir = repo_root / "src"
     sys.path.insert(0, str(src_dir))
 
-    from tmmonster.TMmonster import cli_main
+    from tmmonster.cli import cli_main
 
     cli_main()
     return 0

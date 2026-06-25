@@ -16,7 +16,7 @@
 import json
 from datetime import datetime, timezone
 
-from .TMCSV import print_list_csv
+from ..csv_util import print_list_csv
 
 # JSON keys, in toJSON() order. A derived "gps_datetime_utc" column is prepended.
 rpu_status_field_names = [

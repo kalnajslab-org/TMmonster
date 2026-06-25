@@ -1,6 +1,6 @@
 import sys
 import struct
-from .TMCSV import print_list_csv
+from ..csv_util import print_list_csv
 
 # Sentinel values used in ConfigManagerMCB to mark a limit as "not in use"
 _FLT_MAX = struct.unpack('<f', bytes([0xFF, 0xFF, 0x7F, 0x7F]))[0]

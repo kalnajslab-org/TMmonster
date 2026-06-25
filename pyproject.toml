@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tmmonster"
-version = "2.1.0"
+version = "2.2.0"
 description = "Decode LASP-Strateole2 Telemetry Messages."
 readme = "README.md"
 authors = [
@@ -18,8 +18,8 @@ dependencies = [
 ]
 
 [project.scripts]
-tmmonster = "tmmonster.TMmonster:cli_main"
-tmmonster-batch = "tmmonster.tmmonster_batch:main"
+tmmonster = "tmmonster.cli:cli_main"
+tmmonster-batch = "tmmonster.batch:main"
 
 [project.optional-dependencies]
 dev = [

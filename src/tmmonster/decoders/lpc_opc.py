@@ -1,6 +1,6 @@
 import struct
-from .TMmsg import TMmsg
-from .TMCSV import print_list_csv
+from ..tm import TMmsg
+from ..csv_util import print_list_csv
 
 def decode_payload(
     filename: str,

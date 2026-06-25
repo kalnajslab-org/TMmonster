@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import sys
 import struct
-from .TMCSV import print_list_csv
+from ..csv_util import print_list_csv
 
 # Decoder for the RATCHUTS (PIB) EEPROM dump, sent as a TM with StateMess1
 # "RATCHUTSEEPROM" (see StratoRatchuts::SendPIBEEPROM()).

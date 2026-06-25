@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
 import sys
 import struct
-from .RatsBitDefs import *
-from .RatsScaledVars import *
-from .TMCSV import print_list_csv
+from ..rats.bit_defs import *
+from ..rats.scaled_vars import *
+from ..csv_util import print_list_csv
 
 # The CONFIG_VERSION is included in the data; the BASE_ADDRESS is not.
 # From RATSConfigs.h (version 0x000C):

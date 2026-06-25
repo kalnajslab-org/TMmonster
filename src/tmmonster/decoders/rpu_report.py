@@ -22,7 +22,7 @@ import re
 from datetime import datetime, timezone
 
 import bitstruct
-from .TMCSV import print_list_csv
+from ..csv_util import print_list_csv
 
 RPU_RECORD_BYTES = 38
 RPU_RPT_VERSION = 1
