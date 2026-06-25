@@ -13,16 +13,9 @@ import xmltodict
 import argparse
 import os
 from importlib.metadata import version, PackageNotFoundError
-from . import RATSREPORT
-from . import RATSTCACK
-from . import RATSEEPROM
-from . import MCBREPORT
-from . import MCBEEPROM
-from . import RPUREPORT
-from . import RPUSTATUS
-from . import RATCHUTSEEPROM
-from . import LPCRS41
-from . import LPCOPC
+from . import registry
+from . import builtin_decoders  # noqa: F401  (imported for its registration side effects)
+from .registry import DecodeContext
 
 # The RATSReport contains a bit-packed RATSReport header and a series of ECUReports.
 #
@@ -158,125 +151,33 @@ def get_report_type(xml_dict: dict) -> str | None:
 
 def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str, tm_file, args, csv_header_printed: set, xml_dict: dict) -> set:
     """
-    Runs the appropriate decoder for the given report type.
-    Returns the updated set of report types that have already printed a CSV header.
+    Runs the registered decoder for the given report type (see builtin_decoders
+    for the adapters). Returns the updated set of report types that have already
+    printed a CSV header.
     """
-    payload_processed = False
-    first_file = report_type not in csv_header_printed
-
-    if report_type == "RATSREPORT":
-        if (args.payload or args.headers) and not payload:
-            print(f"Binary payload not found for {report_type}, can't read headers or data")
-            return csv_header_printed
-        if payload:
-            RATSREPORT.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
-        if args.csv:
-            csv_header_printed.add(report_type)
-        payload_processed = True
-
-    if report_type == "RATSTCACK":
+    decoder = registry.get(report_type)
+    if decoder is None:
         if args.payload:
-            if not payload:
-                return csv_header_printed
-            RATSTCACK.decode_payload(payload, args.headers, args.payload, first_file, args.csv)
-        if args.csv:
-            csv_header_printed.add(report_type)
-        payload_processed = True
+            print(f"{report_type} payload processing not yet implemented.")
+        return csv_header_printed
 
-    if report_type == "RATSTEXT":
-        if args.payload:
-            if not payload:
-                return csv_header_printed
-            RATSTCACK.decode_payload(payload, args.headers, args.payload, first_file, args.csv)
-        if args.csv:
-            csv_header_printed.add(report_type)
-        payload_processed = True
+    ctx = DecodeContext(
+        report_type=report_type,
+        payload=payload,
+        headers=args.headers,
+        show_payload=args.payload,
+        csv=args.csv,
+        float_format=args.float_format,
+        xml_dict=xml_dict,
+        tm_filename=tm_filename,
+        tm_file=tm_file,
+        first_file=report_type not in csv_header_printed,
+    )
 
-    if report_type == "RATSEEPROM":
-        if args.payload:
-            if not payload:
-                return csv_header_printed
-            RATSEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
-        if args.csv:
-            csv_header_printed.add(report_type)
-        payload_processed = True
+    decoder(ctx)
 
-    if report_type == "MCBEEPROM":
-        if args.payload:
-            if not payload:
-                return csv_header_printed
-            MCBEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
-        if args.csv:
-            csv_header_printed.add(report_type)
-        payload_processed = True
-
-    if report_type == "LPCRS41":
-        tm_file.close()  # Close the file so that RS41msg can read it again
-        if args.payload:
-            if not payload:
-                return csv_header_printed
-            LPCRS41.decode_payload(tm_filename, args.headers, args.payload, first_file, args.csv, args.float_format)
-        if args.csv:
-            csv_header_printed.add(report_type)
-        payload_processed = True
-
-    if report_type == "LPCOPC":
-        if args.payload:
-            if not payload:
-                return csv_header_printed
-            LPCOPC.decode_payload(tm_filename, args.headers, args.payload, first_file, args.csv, args.float_format)
-        if args.csv:
-            csv_header_printed.add(report_type)
-        payload_processed = True
-
-    if report_type == "MCBREPORT":
-        if first_file and args.csv:
-            print(MCBREPORT.csv_header())
-        if args.csv:
-            csv_header_printed.add(report_type)
-        if args.payload:
-            if not payload:
-                return csv_header_printed
-            MCBREPORT.decode_payload(payload, args.csv, args.float_format)
-        payload_processed = True
-
-    if report_type == "RPUREPORT":
-        if first_file and args.csv:
-            print(RPUREPORT.csv_header())
-        if args.csv:
-            csv_header_printed.add(report_type)
-        if args.payload:
-            if not payload:
-                return csv_header_printed
-            # The profile start reference (epoch, lat, lon) is carried in the
-            # TM's StateMess3; use it to reconstruct absolute time/position.
-            # The profile number is carried in StateMess2.
-            start = RPUREPORT.parse_start_values(xml_dict['TM'].get('StateMess3'))
-            profile = RPUREPORT.parse_profile(xml_dict['TM'].get('StateMess2'))
-            RPUREPORT.decode_payload(payload, args.csv, args.float_format, start, profile)
-        payload_processed = True
-
-    if report_type == "RPUSTATUS":
-        if args.payload or args.headers:
-            if not payload:
-                print(f"Binary payload not found for {report_type}, can't read headers or data")
-                return csv_header_printed
-            RPUSTATUS.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
-        if args.csv:
-            csv_header_printed.add(report_type)
-        payload_processed = True
-
-    if report_type == "RATCHUTSEEPROM":
-        if args.payload:
-            if not payload:
-                return csv_header_printed
-            RATCHUTSEEPROM.decode_payload(payload, args.headers, args.payload, first_file, args.csv, args.float_format)
-        if args.csv:
-            csv_header_printed.add(report_type)
-        payload_processed = True
-
-    if args.payload and not payload_processed:
-        print(f"{report_type} payload processing not yet implemented.")
+    if args.csv:
+        csv_header_printed.add(report_type)
 
     return csv_header_printed
 
