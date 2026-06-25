@@ -44,7 +44,7 @@ def parse_args():
     except PackageNotFoundError:
         pkg_version = "unknown"
     parser = argparse.ArgumentParser(
-        description="Decode RATS TM binary files.",
+        description="Decode Strateole2 TM binary files (RATS, RACHUTS, RPU, ECU, LPC, MCB).",
         epilog=(
             "To process files in bulk, grouped into time windows, "
             "see the companion tool: tmmonster-batch --help"
