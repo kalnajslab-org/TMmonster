@@ -86,7 +86,7 @@ rpu_slot_bits = {
     0: ('>u16u16u8', ['opc_d500', 'opc_d700', '_pad']),
     1: ('>u16u16u8', ['opc_d1000', 'opc_d2500', '_pad']),
     2: ('>u16u16u8', ['opc_d3000', 'opc_d5000', '_pad']),
-    3: ('>u16u16u8', ['rs41_mag_xy', 'bemf_v', '_pad']),
+    3: ('>u16u16u8', ['rs41_hdg', 'bemf_v', '_pad']),
     4: ('>u16u16u8', ['tdlas_spec_1', 'tdlas_spec_2', '_pad']),
     5: ('>u16u16u8', ['tdlas_spec_3', 'tdlas_spec_4', '_pad']),
     6: ('>u8u8u8u8u8', ['tsen_i', 'opc_i', 'pump_i', 'tdlas_i', 'v5']),
@@ -98,7 +98,7 @@ rpu_slow_field_names = [
     'opc_d500', 'opc_d700',
     'opc_d1000', 'opc_d2500',
     'opc_d3000', 'opc_d5000',
-    'rs41_mag_xy', 'bemf_v',
+    'rs41_hdg', 'bemf_v',
     'tdlas_spec_1', 'tdlas_spec_2',
     'tdlas_spec_3', 'tdlas_spec_4',
     'tsen_i', 'opc_i', 'pump_i', 'tdlas_i', 'v5',
@@ -197,7 +197,7 @@ def _scale_slot(idx, raw):
             if name != '_pad':
                 scaled[name] = raw[name]
     elif idx == 3:
-        scaled['rs41_mag_xy'] = raw['rs41_mag_xy'] - 1000
+        scaled['rs41_hdg'] = raw['rs41_hdg'] / 100.0   # degrees x100 (0-360.00)
         scaled['bemf_v'] = raw['bemf_v'] / 1000.0
     elif idx in (4, 5):
         # TDLAS spectra pass through unscaled (provisional).
