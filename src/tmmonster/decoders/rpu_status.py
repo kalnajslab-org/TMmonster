@@ -59,12 +59,16 @@ def decode_payload(
     float_format: str
 ) -> None:
     payload = TMmsg(filename).bindata
-    status = json.loads(payload.decode('utf-8'))
+    # Firmware can emit non-UTF-8 bytes inside a string field (e.g. a corrupt
+    # "ver"); decode with replacement so one bad field doesn't drop the whole
+    # record. The bad bytes sit inside a quoted JSON value, so it still parses.
+    json_text = payload.decode('utf-8', errors='replace')
+    status = json.loads(json_text)
     gps_datetime_utc = _decode_gps_datetime(status.get('date'), status.get('time'))
 
     if print_headers:
         print('----- RPUSTATUS JSON payload:')
-        print(payload.decode('utf-8'))
+        print(json_text)
         print(f'gps_datetime_utc: {gps_datetime_utc}')
         print()
 
