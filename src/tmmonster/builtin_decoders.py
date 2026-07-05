@@ -28,8 +28,12 @@ def _rats_report(ctx: DecodeContext) -> None:
         print("Binary payload not found for RATSREPORT, can't read headers or data")
         return
     if ctx.payload is not None:
-        rats_report.decode_payload(ctx.payload, ctx.headers, ctx.show_payload,
-                                   ctx.first_file, ctx.csv, ctx.float_format)
+        # A records-less RATSREPORT can't emit the CSV header (the ECU columns
+        # depend on a record); report back so the dispatcher doesn't treat it
+        # as the first file that owns the header.
+        ctx.header_emitted = rats_report.decode_payload(
+            ctx.payload, ctx.headers, ctx.show_payload,
+            ctx.first_file, ctx.csv, ctx.float_format)
 
 
 @register("RATSTCACK", "RATSTEXT")

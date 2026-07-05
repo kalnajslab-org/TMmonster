@@ -176,7 +176,10 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
 
     decoder(ctx)
 
-    if args.csv:
+    # Only record the header as printed once a decoder has actually emitted it,
+    # so a first file that produced no header (e.g. a records-less RATSREPORT)
+    # doesn't suppress it for the rest of the batch.
+    if args.csv and ctx.header_emitted:
         csv_header_printed.add(report_type)
 
     return csv_header_printed

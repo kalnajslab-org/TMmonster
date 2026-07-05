@@ -12,7 +12,13 @@ def decode_payload(
     first_file: bool,
     csv_output: bool,
     float_format: str
-) -> None:
+) -> bool:
+    """
+    Decode a RATSREPORT payload. Returns True if this call emitted the CSV
+    column header (only happens on the first file that actually contains an
+    ECU record), so the dispatcher does not treat a records-less first file as
+    having consumed the header slot.
+    """
     rats_report_ver = bitstruct.unpack('>u4', payload[0:1])[0]
     if rats_report_ver not in rats_bits:
         print(f'Unknown RATSREPORT header version {rats_report_ver}')
@@ -43,7 +49,11 @@ def decode_payload(
         print()
 
     if not print_payload:
-        return
+        return False
+
+    # Whether this call printed the CSV column header (needs a record to know
+    # the ECU field names, so a records-less file never emits it).
+    header_emitted = False
 
     # Keep useful header values in variables
     header_size = int(rats_report_header['header_size_bytes'])
@@ -74,6 +84,7 @@ def decode_payload(
             csv_col_names += ','.join(rats_field_names[rats_report_ver])
             csv_col_names += ',' + ','.join(ecu_field_names[ecu_record_ver])
             print(csv_col_names)
+            header_emitted = True
 
         # Unpack the unscaled parameters
         vars = bitstruct.unpack_dict(ecu_bits[ecu_record_ver], ecu_field_names[ecu_record_ver], ecu_record_bytes)
@@ -109,3 +120,5 @@ def decode_payload(
         record_num += 1
 
         offset += ecu_record_size
+
+    return header_emitted

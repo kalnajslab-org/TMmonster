@@ -29,6 +29,11 @@ class DecodeContext:
     tm_filename: str              # absolute path to the source TM file
     tm_file: object               # the open file handle for the source TM
     first_file: bool = False      # first file seen for this report type
+    # Whether this file emitted the one-time CSV column header. Defaults True
+    # (most decoders always emit their header on the first file); a decoder
+    # that can fail to emit it — e.g. a records-less RATSREPORT — sets it False
+    # so the dispatcher does not prematurely mark the header as printed.
+    header_emitted: bool = True
 
 
 # report-type string -> adapter
