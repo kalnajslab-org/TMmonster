@@ -22,6 +22,7 @@ import re
 from datetime import datetime, timezone
 
 import bitstruct
+from ..tm import TMmsg
 from ..csv_util import print_list_csv
 
 RPU_RECORD_BYTES = 38
@@ -222,7 +223,8 @@ def csv_header():
     return ','.join(rpu_csv_field_names)
 
 
-def decode_payload(payload, csv_output, float_format, start=None, profile=None):
+def decode_payload(filename, csv_output, float_format, start=None, profile=None):
+    payload = TMmsg(filename).bindata
     num_records = len(payload) // RPU_RECORD_BYTES
     if num_records == 0:
         return

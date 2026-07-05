@@ -1,6 +1,7 @@
 import bitstruct
 from datetime import datetime, timezone
 import math
+from ..tm import TMmsg
 from ..csv_util import print_list_csv
 
 mcb_start_time = (
@@ -52,7 +53,8 @@ def csv_header():
     header_fields = ','.join(mcb_start_field_names+['start_time_iso']+mcb_field_names)
     return header_fields
 
-def decode_payload(payload, csv_output, float_format):
+def decode_payload(filename, csv_output, float_format):
+    payload = TMmsg(filename).bindata
 
     # From StratoRATS::InitMCBMotionTracking():
     # uint32_t ProfileStartEpoch  = now();

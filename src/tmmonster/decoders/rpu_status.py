@@ -16,6 +16,7 @@
 import json
 from datetime import datetime, timezone
 
+from ..tm import TMmsg
 from ..csv_util import print_list_csv
 
 # JSON keys, in toJSON() order. A derived "gps_datetime_utc" column is prepended.
@@ -50,13 +51,14 @@ def _decode_gps_datetime(date, time):
 
 
 def decode_payload(
-    payload: bytes,
+    filename: str,
     print_headers: bool,
     print_payload: bool,
     first_file: bool,
     csv_output: bool,
     float_format: str
 ) -> None:
+    payload = TMmsg(filename).bindata
     status = json.loads(payload.decode('utf-8'))
     gps_datetime_utc = _decode_gps_datetime(status.get('date'), status.get('time'))
 

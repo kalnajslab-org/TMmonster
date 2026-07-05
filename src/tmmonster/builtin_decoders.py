@@ -2,13 +2,15 @@
 Built-in decoder adapters.
 
 Importing this module registers every report-type decoder shipped with
-tmmonster. Each adapter is a faithful translation of what the old run_decoder
-if/elif ladder did for that report type — the per-decoder modules themselves are
-unchanged. The dispatcher (cli.run_decoder) handles the bookkeeping common to
-all report types (first-file tracking and recording that a CSV header has been
-emitted), so adapters only express what is specific to their decoder.
+tmmonster. Each decoder takes the TM filename and pulls its binary payload via
+the TMmsg class (see decoders/*.py); the adapters below wire the CLI's
+DecodeContext to each decoder's call signature and express what is specific to
+that decoder (whether it runs on --headers, whether it prints a CSV header on
+the first file, etc.). The dispatcher (cli.run_decoder) handles the bookkeeping
+common to all report types.
 """
 
+from . import tm  # noqa: F401  (ensures the TMmsg module is importable here)
 from .decoders import rats_report
 from .decoders import rats_tcack
 from .decoders import rats_eeprom
@@ -24,51 +26,49 @@ from .registry import register, DecodeContext
 
 @register("RATSREPORT")
 def _rats_report(ctx: DecodeContext) -> None:
-    if (ctx.show_payload or ctx.headers) and ctx.payload is None:
+    if (ctx.show_payload or ctx.headers) and not ctx.has_payload:
         print("Binary payload not found for RATSREPORT, can't read headers or data")
         return
-    if ctx.payload is not None:
+    if ctx.has_payload:
         # A records-less RATSREPORT can't emit the CSV header (the ECU columns
         # depend on a record); report back so the dispatcher doesn't treat it
         # as the first file that owns the header.
         ctx.header_emitted = rats_report.decode_payload(
-            ctx.payload, ctx.headers, ctx.show_payload,
+            ctx.tm_filename, ctx.headers, ctx.show_payload,
             ctx.first_file, ctx.csv, ctx.float_format)
 
 
 @register("RATSTCACK", "RATSTEXT")
 def _rats_tcack(ctx: DecodeContext) -> None:
     if ctx.show_payload:
-        if ctx.payload is None:
-            return
-        rats_tcack.decode_payload(ctx.payload, ctx.headers, ctx.show_payload,
+        rats_tcack.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
                                   ctx.first_file, ctx.csv)
 
 
 @register("RATSEEPROM")
 def _rats_eeprom(ctx: DecodeContext) -> None:
     if ctx.show_payload:
-        if ctx.payload is None:
+        if not ctx.has_payload:
             return
-        rats_eeprom.decode_payload(ctx.payload, ctx.headers, ctx.show_payload,
+        rats_eeprom.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
                                    ctx.first_file, ctx.csv, ctx.float_format)
 
 
 @register("MCBEEPROM")
 def _mcb_eeprom(ctx: DecodeContext) -> None:
     if ctx.show_payload:
-        if ctx.payload is None:
+        if not ctx.has_payload:
             return
-        mcb_eeprom.decode_payload(ctx.payload, ctx.headers, ctx.show_payload,
+        mcb_eeprom.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
                                   ctx.first_file, ctx.csv, ctx.float_format)
 
 
 @register("RATCHUTSEEPROM")
 def _ratchuts_eeprom(ctx: DecodeContext) -> None:
     if ctx.show_payload:
-        if ctx.payload is None:
+        if not ctx.has_payload:
             return
-        ratchuts_eeprom.decode_payload(ctx.payload, ctx.headers, ctx.show_payload,
+        ratchuts_eeprom.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
                                        ctx.first_file, ctx.csv, ctx.float_format)
 
 
@@ -76,7 +76,7 @@ def _ratchuts_eeprom(ctx: DecodeContext) -> None:
 def _lpc_rs41(ctx: DecodeContext) -> None:
     ctx.tm_file.close()  # close so RS41msg can reopen the file by name
     if ctx.show_payload:
-        if ctx.payload is None:
+        if not ctx.has_payload:
             return
         lpc_rs41.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
                                 ctx.first_file, ctx.csv, ctx.float_format)
@@ -85,7 +85,7 @@ def _lpc_rs41(ctx: DecodeContext) -> None:
 @register("LPCOPC")
 def _lpc_opc(ctx: DecodeContext) -> None:
     if ctx.show_payload:
-        if ctx.payload is None:
+        if not ctx.has_payload:
             return
         lpc_opc.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
                                ctx.first_file, ctx.csv, ctx.float_format)
@@ -96,9 +96,9 @@ def _mcb_report(ctx: DecodeContext) -> None:
     if ctx.first_file and ctx.csv:
         print(mcb_report.csv_header())
     if ctx.show_payload:
-        if ctx.payload is None:
+        if not ctx.has_payload:
             return
-        mcb_report.decode_payload(ctx.payload, ctx.csv, ctx.float_format)
+        mcb_report.decode_payload(ctx.tm_filename, ctx.csv, ctx.float_format)
 
 
 @register("RPUREPORT")
@@ -106,21 +106,21 @@ def _rpu_report(ctx: DecodeContext) -> None:
     if ctx.first_file and ctx.csv:
         print(rpu_report.csv_header())
     if ctx.show_payload:
-        if ctx.payload is None:
+        if not ctx.has_payload:
             return
         # The profile start reference (epoch, lat, lon) is carried in the TM's
         # StateMess3 and the profile number in StateMess2.
-        tm = ctx.xml_dict['TM']
-        start = rpu_report.parse_start_values(tm.get('StateMess3'))
-        profile = rpu_report.parse_profile(tm.get('StateMess2'))
-        rpu_report.decode_payload(ctx.payload, ctx.csv, ctx.float_format, start, profile)
+        tm_xml = ctx.xml_dict['TM']
+        start = rpu_report.parse_start_values(tm_xml.get('StateMess3'))
+        profile = rpu_report.parse_profile(tm_xml.get('StateMess2'))
+        rpu_report.decode_payload(ctx.tm_filename, ctx.csv, ctx.float_format, start, profile)
 
 
 @register("RPUSTATUS")
 def _rpu_status(ctx: DecodeContext) -> None:
     if ctx.show_payload or ctx.headers:
-        if ctx.payload is None:
+        if not ctx.has_payload:
             print("Binary payload not found for RPUSTATUS, can't read headers or data")
             return
-        rpu_status.decode_payload(ctx.payload, ctx.headers, ctx.show_payload,
+        rpu_status.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
                                   ctx.first_file, ctx.csv, ctx.float_format)

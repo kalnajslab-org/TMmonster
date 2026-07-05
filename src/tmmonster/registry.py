@@ -20,7 +20,7 @@ from typing import Callable, Optional
 @dataclass
 class DecodeContext:
     report_type: str
-    payload: Optional[bytes]      # binary payload, or None if absent
+    has_payload: bool             # True if the TM carries a binary payload (Length != 0)
     headers: bool                 # --headers requested
     show_payload: bool            # --payload requested
     csv: bool                     # --csv requested

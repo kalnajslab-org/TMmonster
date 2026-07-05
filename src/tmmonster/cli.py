@@ -149,11 +149,12 @@ def get_report_type(xml_dict: dict) -> str | None:
 
     return None
 
-def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str, tm_file, args, csv_header_printed: set, xml_dict: dict) -> set:
+def run_decoder(report_type: str | None, tm_filename: str, tm_file, args, csv_header_printed: set, xml_dict: dict) -> set:
     """
     Runs the registered decoder for the given report type (see builtin_decoders
-    for the adapters). Returns the updated set of report types that have already
-    printed a CSV header.
+    for the adapters). Each decoder reads the binary payload from the file
+    itself via TMmsg; here we only tell it whether a payload exists. Returns the
+    updated set of report types that have already printed a CSV header.
     """
     decoder = registry.get(report_type)
     if decoder is None:
@@ -163,7 +164,7 @@ def run_decoder(report_type: str | None, payload: bytes | None, tm_filename: str
 
     ctx = DecodeContext(
         report_type=report_type,
-        payload=payload,
+        has_payload=xml_dict['TM'].get('Length', '0') != '0',
         headers=args.headers,
         show_payload=args.payload,
         csv=args.csv,
@@ -217,15 +218,10 @@ def main(args):
                             print(f'{key}: {value}')
                         print()
 
-                    # Get the payload, if it exists.
-                    payload = None
-                    if xml_dict['TM']['Length'] != '0':
-                        payload_start = all_bytes.find(b"START") + 5
-                        if payload_start != -1:
-                            payload = all_bytes[payload_start:-5]  # Exclude the CRC and "END" marker
-
-                    # Perform the appropriate decoding for this report type, if implemented
-                    csv_header_printed = run_decoder(report_type, payload, tm_filename, tm_file, args, csv_header_printed, xml_dict)
+                    # Perform the appropriate decoding for this report type, if
+                    # implemented. Decoders read the binary payload from the file
+                    # themselves via TMmsg.
+                    csv_header_printed = run_decoder(report_type, tm_filename, tm_file, args, csv_header_printed, xml_dict)
             except Exception as e:
                 print(f"Error processing file {tm_file.name}: {e}", file=sys.stderr)
                 exc_type, exc_value, exc_tb = sys.exc_info()

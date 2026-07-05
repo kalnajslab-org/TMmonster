@@ -1,5 +1,6 @@
 import sys
 import struct
+from ..tm import TMmsg
 from ..csv_util import print_list_csv
 
 # Sentinel values used in ConfigManagerMCB to mark a limit as "not in use"
@@ -91,13 +92,14 @@ _fields = [
 
 
 def decode_payload(
-    payload: bytes,
+    filename: str,
     print_headers: bool,
     print_payload: bool,
     first_file: bool,
     csv_output: bool,
     float_format: str
 ) -> None:
+    payload = TMmsg(filename).bindata
 
     config_version = struct.unpack_from('<H', payload, 0)[0]
 

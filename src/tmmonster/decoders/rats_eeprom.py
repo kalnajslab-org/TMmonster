@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import sys
 import struct
+from ..tm import TMmsg
 from ..rats.bit_defs import *
 from ..rats.scaled_vars import *
 from ..csv_util import print_list_csv
@@ -35,14 +36,15 @@ rats_eeprom_field_names = {
 versions = [0x000C]
 
 def decode_payload(
-    payload: bytes,
+    filename: str,
     print_headers: bool,
     print_payload: bool,
     first_file: bool,
     csv_output: bool,
     float_format: str
 ) -> None:
-    
+    payload = TMmsg(filename).bindata
+
     eeprom = {}
     eeprom['config_version'] = struct.unpack('<H', payload[0:2])[0]
 

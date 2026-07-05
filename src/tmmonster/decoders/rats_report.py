@@ -1,12 +1,13 @@
 from datetime import datetime, timezone
 import sys
 import bitstruct
+from ..tm import TMmsg
 from ..rats.bit_defs import *
 from ..rats.scaled_vars import *
 from ..csv_util import print_list_csv
 
 def decode_payload(
-    payload: bytes,
+    filename: str,
     print_headers: bool,
     print_payload: bool,
     first_file: bool,
@@ -14,11 +15,13 @@ def decode_payload(
     float_format: str
 ) -> bool:
     """
-    Decode a RATSREPORT payload. Returns True if this call emitted the CSV
+    Decode a RATSREPORT TM file. Returns True if this call emitted the CSV
     column header (only happens on the first file that actually contains an
     ECU record), so the dispatcher does not treat a records-less first file as
     having consumed the header slot.
     """
+    payload = TMmsg(filename).bindata
+
     rats_report_ver = bitstruct.unpack('>u4', payload[0:1])[0]
     if rats_report_ver not in rats_bits:
         print(f'Unknown RATSREPORT header version {rats_report_ver}')
