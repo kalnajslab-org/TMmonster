@@ -124,6 +124,7 @@ def decode_payload(
         print_list_csv(data=list(eeprom.values()), float_fmt=float_format)
     else:
         float_fmt = f'{{:{float_format}}}' if float_format else None
+        print("----- MCBEEPROM:")
         for key, value in eeprom.items():
             if key == 'config_version':
                 print(f'{key}: 0x{value:04X}')

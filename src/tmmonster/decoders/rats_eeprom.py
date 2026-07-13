@@ -72,6 +72,7 @@ def decode_payload(
         print_list_csv(data=csv_values, float_fmt=float_format)
     else:
         float_fmt = f'{{:{float_format}}}' if float_format else None
+        print("----- RATSEEPROM:")
         for key, value in eeprom.items():
             if isinstance(value, float) and float_fmt:
                 print(f'{key}: {float_fmt.format(value)}')
