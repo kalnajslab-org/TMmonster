@@ -64,7 +64,45 @@ pib_eeprom_fields = {
         ('profile_id', 'H'),
         ('ra_override', '?'),
         ('pu_auto_offload', '?'),
-    ]
+    ],
+    0x5C06: [
+        ('config_version', 'H'),   # the version itself, bytes 0-1
+        # profile sizing (revolutions)
+        ('profile_size', 'f'),
+        ('dock_amount', 'f'),
+        ('dock_overshoot', 'f'),
+        ('redock_out', 'f'),
+        ('redock_in', 'f'),
+        # profile speeds (rpm)
+        ('deploy_velocity', 'f'),
+        ('retract_velocity', 'f'),
+        ('dock_velocity', 'f'),
+        # RPU configuration
+        ('rpu_bat_temp', 'f'),
+        ('rpu_status_rate', 'H'),
+        ('rpu_meas_duration', 'H'),
+        ('rpu_meas_rate', 'H'),
+        ('rpu_enable_TSEN', 'B'),
+        ('rpu_enable_ROPC', 'B'),
+        ('rpu_enable_RS41', 'B'),
+        ('rpu_enable_TDLAS', 'B'),
+        # profile timing (seconds)
+        ('dwell_time', 'H'),
+        ('preprofile_time', 'H'),
+        ('puwarmup_time', 'H'),
+        ('motion_timeout', 'H'),
+        ('num_redock', 'B'),
+        # PU tracking
+        ('pu_docked', '?'),
+        # MCB TM mode
+        ('real_time_mcb', '?'),
+        # LoRa settings
+        ('lora_tx_tm', '?'),
+        ('lora_tx_status', 'H'),
+        ('profile_id', 'H'),
+        ('ra_override', '?'),
+        ('pu_auto_offload', '?'),
+    ],
 }
 
 versions = list(pib_eeprom_fields.keys())
