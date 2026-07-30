@@ -19,7 +19,7 @@ from .decoders import mcb_eeprom
 from .decoders import lpc_rs41
 from .decoders import lpc_opc
 from .decoders import rpu_report
-from .decoders import rpu_status
+from .decoders import ratchuts_report
 from .decoders import ratchuts_eeprom
 from .registry import register, DecodeContext
 
@@ -116,11 +116,11 @@ def _rpu_report(ctx: DecodeContext) -> None:
         rpu_report.decode_payload(ctx.tm_filename, ctx.csv, ctx.float_format, start, profile)
 
 
-@register("RPUSTATUS")
-def _rpu_status(ctx: DecodeContext) -> None:
+@register("RATCHUTSREPORT")
+def _ratchuts_report(ctx: DecodeContext) -> None:
     if ctx.show_payload or ctx.headers:
         if not ctx.has_payload:
-            print("Binary payload not found for RPUSTATUS, can't read headers or data")
+            print("Binary payload not found for RATCHUTSREPORT, can't read headers or data")
             return
-        rpu_status.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
-                                  ctx.first_file, ctx.csv, ctx.float_format)
+        ratchuts_report.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
+                                       ctx.first_file, ctx.csv, ctx.float_format)
