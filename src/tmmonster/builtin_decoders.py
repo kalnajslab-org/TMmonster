@@ -108,12 +108,10 @@ def _rpu_report(ctx: DecodeContext) -> None:
     if ctx.show_payload:
         if not ctx.has_payload:
             return
-        # The profile start reference (epoch, lat, lon) is carried in the TM's
-        # StateMess3 and the profile number in StateMess2.
-        tm_xml = ctx.xml_dict['TM']
-        start = rpu_report.parse_start_values(tm_xml.get('StateMess3'))
-        profile = rpu_report.parse_profile(tm_xml.get('StateMess2'))
-        rpu_report.decode_payload(ctx.tm_filename, ctx.csv, ctx.float_format, start, profile)
+        # The start reference (epoch, lat, lon) is carried in the payload's
+        # block header; the profile number is in StateMess2.
+        profile = rpu_report.parse_profile(ctx.xml_dict['TM'].get('StateMess2'))
+        rpu_report.decode_payload(ctx.tm_filename, ctx.csv, ctx.float_format, profile)
 
 
 @register("RATCHUTSREPORT")

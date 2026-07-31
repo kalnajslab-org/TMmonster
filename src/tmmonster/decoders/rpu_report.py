@@ -28,6 +28,14 @@ from ..csv_util import print_list_csv
 RPU_RECORD_BYTES = 38
 RPU_RPT_VERSION = 1
 
+# A 12-byte block header (big-endian) prepended to the record block by the RPU
+# (RPURecord::encodeBlockHeader): epoch_time (uint32) + gps_lat (int32) +
+# gps_lon (int32), both coordinates in degrees x1e6. Provides the start
+# reference for reconstructing absolute time/position from the per-record
+# deltas. Detected by length (len % 38 == 12); older TMs omit it.
+RPU_BLOCK_HDR_BYTES = 12
+rpu_block_hdr_bits = '>u32s32s32'
+
 # --- Fast fields (period = 1, present in every record) ---------------------
 # Includes the leading 4-bit version. 264 bits total = 33 bytes.
 rpu_fast_bits = (
@@ -129,20 +137,16 @@ def parse_profile(state_mess2):
     return int(m.group(1)) if m else None
 
 
-def parse_start_values(state_mess3):
+def parse_block_header(payload):
     '''
-    Extract the (epoch, lat, lon) start reference from a RACHUTS RPUREPORT
-    StateMess3 string. Handles both observed forms, e.g.:
-        "1781445976, 0.0000, 0.0000, 0.0"
-        "PU TM: 2.26, 1781434900, 0.0000, 0.0000, 0.0"
-    The epoch is the first integer-valued token >= 1e9; lat and lon are the two
-    tokens following it. Returns (epoch, lat, lon) or None if not parseable.
+    Parse the 12-byte block header (epoch_time, gps_lat, gps_lon) the RPU
+    prepends to the record block. Returns (epoch, lat, lon) in seconds/degrees,
+    or None if the payload is too short.
     '''
-    nums = [float(t) for t in re.findall(r'-?\d+\.?\d*', state_mess3 or '')]
-    for i, n in enumerate(nums):
-        if n >= 1e9 and i + 2 < len(nums):
-            return int(n), nums[i + 1], nums[i + 2]
-    return None
+    if len(payload) < RPU_BLOCK_HDR_BYTES:
+        return None
+    epoch, lat_raw, lon_raw = bitstruct.unpack(rpu_block_hdr_bits, payload[:RPU_BLOCK_HDR_BYTES])
+    return epoch, lat_raw / 1e6, lon_raw / 1e6
 
 
 def _scale_fast(raw, start=None):
@@ -223,8 +227,15 @@ def csv_header():
     return ','.join(rpu_csv_field_names)
 
 
-def decode_payload(filename, csv_output, float_format, start=None, profile=None):
+def decode_payload(filename, csv_output, float_format, profile=None):
     payload = TMmsg(filename).bindata
+
+    # The RPU prepends a 12-byte block header (epoch_time, gps_lat, gps_lon) that
+    # provides the start reference for reconstructing absolute time/position from
+    # the per-record deltas. Strip it before iterating records.
+    start = parse_block_header(payload)
+    payload = payload[RPU_BLOCK_HDR_BYTES:]
+
     num_records = len(payload) // RPU_RECORD_BYTES
     if num_records == 0:
         return
