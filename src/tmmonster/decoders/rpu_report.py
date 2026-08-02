@@ -1,23 +1,24 @@
 #
 # See RPUComm/src/RPUcomm.h (class RPURecord) for the bit-packed RPU report
-# record format. An RPUREPORT TM payload is simply a block of these records,
-# back to back, with no leading header.
+# record format. An RPUREPORT TM payload is a 12-byte block header followed by a
+# block of records, back to back.
 #
-# Each record is RPU_RECORD_BYTES (38) bytes, big-endian bit order, and is laid
+# Each record is RPU_RECORD_BYTES (48) bytes, big-endian bit order, and is laid
 # out as:
 #
 #   version (4 bits)
-#   20 "fast" fields (period = 1, present in every record)   -> 260 bits
-#   one 40-bit round-robin "slot" carrying a rotating pair/group of the
-#   22 "slow" fields (period = 8), selected by the round_robin_idx fast field
+#   27 "fast" fields (period = 1, present in every record)   -> 340 bits
+#   one 40-bit round-robin "slot" carrying a rotating group of the 19 "slow"
+#   fields (period = 6), selected by the round_robin_idx fast field
 #
-# 4 + 260 = 264 bits = 33 bytes (byte-aligned), then 40 bits = 5 bytes for the
-# slot, for 38 bytes total. Because both halves are byte-aligned we decode the
-# fast fields from payload[0:33] and the slot from payload[33:38].
+# 4 + 340 = 344 bits = 43 bytes (byte-aligned), then 40 bits = 5 bytes for the
+# slot, for 48 bytes total. Because both halves are byte-aligned we decode the
+# fast fields from record[0:43] and the slot from record[43:48].
 #
 # The slow fields not carried in a given record's slot are left blank.
 #
 
+import math
 import re
 from datetime import datetime, timezone
 
@@ -25,19 +26,19 @@ import bitstruct
 from ..tm import TMmsg
 from ..csv_util import print_list_csv
 
-RPU_RECORD_BYTES = 38
+RPU_RECORD_BYTES = 48
+RPU_FAST_BYTES = 43         # version + fast fields, byte-aligned
 RPU_RPT_VERSION = 1
 
 # A 12-byte block header (big-endian) prepended to the record block by the RPU
 # (RPURecord::encodeBlockHeader): epoch_time (uint32) + gps_lat (int32) +
 # gps_lon (int32), both coordinates in degrees x1e6. Provides the start
-# reference for reconstructing absolute time/position from the per-record
-# deltas. Detected by length (len % 38 == 12); older TMs omit it.
+# reference for reconstructing absolute time/position from the per-record deltas.
 RPU_BLOCK_HDR_BYTES = 12
 rpu_block_hdr_bits = '>u32s32s32'
 
 # --- Fast fields (period = 1, present in every record) ---------------------
-# Includes the leading 4-bit version. 264 bits total = 33 bytes.
+# Includes the leading 4-bit version. 344 bits total = 43 bytes.
 rpu_fast_bits = (
     '>'      # big-endian bit order (matches etl::endian::big)
     'u4'     # packet format version
@@ -57,10 +58,17 @@ rpu_fast_bits = (
     'u16'    # rs41_pres
     'u16'    # rs41_humidity
     'u16'    # rs41_hsensor_t
-    'u10'    # tdlas_mr_avg
+    'u16'    # tdlas_mr_avg
     'u12'    # tdlas_bkg
     'u8'     # tdlas_peak
     'u10'    # tdlas_ratio
+    'u14'    # tdlas_max_vmr
+    'u8'     # tdlas_laser_t
+    'u12'    # tdlas_spec_1
+    'u12'    # tdlas_spec_2
+    'u12'    # tdlas_spec_3
+    'u12'    # tdlas_spec_4
+    'u4'     # tdlas_idx
 )
 
 rpu_fast_field_names = [
@@ -85,20 +93,25 @@ rpu_fast_field_names = [
     'tdlas_bkg',
     'tdlas_peak',
     'tdlas_ratio',
+    'tdlas_max_vmr',
+    'tdlas_laser_t',
+    'tdlas_spec_1',
+    'tdlas_spec_2',
+    'tdlas_spec_3',
+    'tdlas_spec_4',
+    'tdlas_idx',
 ]
 
-# --- Round-robin slow-field slots (period = 8) -----------------------------
-# Each slot is 40 bits = 5 bytes. The trailing pad bits (indices 0-5) are
-# decoded but discarded.
+# --- Round-robin slow-field slots (period = 6) -----------------------------
+# Each slot is 40 bits = 5 bytes. The trailing pad bits are decoded but
+# discarded.
 rpu_slot_bits = {
     0: ('>u16u16u8', ['opc_d500', 'opc_d700', '_pad']),
     1: ('>u16u16u8', ['opc_d1000', 'opc_d2500', '_pad']),
     2: ('>u16u16u8', ['opc_d3000', 'opc_d5000', '_pad']),
-    3: ('>u16u16u8', ['rs41_hdg', 'bemf_v', '_pad']),
-    4: ('>u16u16u8', ['tdlas_spec_1', 'tdlas_spec_2', '_pad']),
-    5: ('>u16u16u8', ['tdlas_spec_3', 'tdlas_spec_4', '_pad']),
-    6: ('>u8u8u8u8u8', ['tsen_i', 'opc_i', 'pump_i', 'tdlas_i', 'v5']),
-    7: ('>u8u8u8u12u4', ['bat_t', 'pump_t', 'pcb_t', 'bat_v', 'heater_stat']),
+    3: ('>u8u16u8u8', ['rs41_hdg', 'bemf_v', 'rs41_status', '_pad']),
+    4: ('>u8u8u8u8u8', ['tsen_i', 'opc_i', 'pump_i', 'tdlas_i', 'v5']),
+    5: ('>u8u8u8u12u4', ['bat_t', 'pump_t', 'pcb_t', 'bat_v', 'heater_stat']),
 }
 
 # Every slow field, in round-robin order, for stable CSV columns.
@@ -106,16 +119,14 @@ rpu_slow_field_names = [
     'opc_d500', 'opc_d700',
     'opc_d1000', 'opc_d2500',
     'opc_d3000', 'opc_d5000',
-    'rs41_hdg', 'bemf_v',
-    'tdlas_spec_1', 'tdlas_spec_2',
-    'tdlas_spec_3', 'tdlas_spec_4',
+    'rs41_hdg', 'bemf_v', 'rs41_status',
     'tsen_i', 'opc_i', 'pump_i', 'tdlas_i', 'v5',
     'bat_t', 'pump_t', 'pcb_t', 'bat_v', 'heater_stat',
 ]
 
 # Per-TM context (not in the binary records): profile number from StateMess2,
 # and absolute time/position reconstructed from the per-record deltas plus the
-# start reference (epoch/lat/lon) from StateMess3. Blank when not available.
+# start reference (epoch/lat/lon) from the block header. Blank when not available.
 rpu_start_field_names = ['profile', 'tm_time_utc', 'epoch_time', 'lat', 'lon']
 
 # CSV column order: per-TM context first, then round_robin_idx and the rest of
@@ -180,14 +191,21 @@ def _scale_fast(raw, start=None):
         'tsen_airt': raw['tsen_airt'],
         'tsen_pres': raw['tsen_pres'],
         'tsen_ptemp': raw['tsen_ptemp'],
-        'rs41_air_t': (raw['rs41_air_t'] / 100.0) - 100.0,
-        'rs41_pres': raw['rs41_pres'] / 10.0,
-        'rs41_humidity': raw['rs41_humidity'] / 100.0,
-        'rs41_hsensor_t': (raw['rs41_hsensor_t'] / 100.0) - 100.0,
-        'tdlas_mr_avg': raw['tdlas_mr_avg'] / 10.0,
-        'tdlas_bkg': raw['tdlas_bkg'] / 100.0,
+        'rs41_air_t': (raw['rs41_air_t'] / 436.9067) - 100.0,
+        'rs41_pres': math.exp((raw['rs41_pres'] / 21525.87) + 3.9120),
+        'rs41_humidity': (raw['rs41_humidity'] / 543.1333) - 20.0,
+        'rs41_hsensor_t': (raw['rs41_hsensor_t'] / 436.9067) - 100.0,
+        'tdlas_mr_avg': raw['tdlas_mr_avg'] / 100.0,
+        'tdlas_bkg': raw['tdlas_bkg'] / 10.0,
         'tdlas_peak': raw['tdlas_peak'] / 10.0,
         'tdlas_ratio': raw['tdlas_ratio'] / 1000.0,
+        'tdlas_max_vmr': raw['tdlas_max_vmr'] / 10.0,
+        'tdlas_laser_t': float(raw['tdlas_laser_t']),
+        'tdlas_spec_1': raw['tdlas_spec_1'] / 1000.0,
+        'tdlas_spec_2': raw['tdlas_spec_2'] / 1000.0,
+        'tdlas_spec_3': raw['tdlas_spec_3'] / 1000.0,
+        'tdlas_spec_4': raw['tdlas_spec_4'] / 1000.0,
+        'tdlas_idx': raw['tdlas_idx'],
     })
     return scaled
 
@@ -201,20 +219,16 @@ def _scale_slot(idx, raw):
             if name != '_pad':
                 scaled[name] = raw[name]
     elif idx == 3:
-        scaled['rs41_hdg'] = raw['rs41_hdg'] / 100.0   # degrees x100 (0-360.00)
+        scaled['rs41_hdg'] = raw['rs41_hdg'] * (360.0 / 256.0)  # 0-360°, ~1.41° res
         scaled['bemf_v'] = raw['bemf_v'] / 1000.0
-    elif idx in (4, 5):
-        # TDLAS spectra pass through unscaled (provisional).
-        for name in rpu_slot_bits[idx][1]:
-            if name != '_pad':
-                scaled[name] = float(raw[name])
-    elif idx == 6:
+        scaled['rs41_status'] = raw['rs41_status']              # 8 flag bits
+    elif idx == 4:
         scaled['tsen_i'] = raw['tsen_i'] * 4.0
         scaled['opc_i'] = raw['opc_i'] * 4.0
         scaled['pump_i'] = raw['pump_i'] * 4.0
         scaled['tdlas_i'] = raw['tdlas_i'] * 4.0
         scaled['v5'] = raw['v5'] / 50.0
-    elif idx == 7:
+    elif idx == 5:
         scaled['bat_t'] = float(raw['bat_t']) - 100.0
         scaled['pump_t'] = float(raw['pump_t']) - 100.0
         scaled['pcb_t'] = float(raw['pcb_t']) - 100.0
@@ -254,7 +268,7 @@ def decode_payload(filename, csv_output, float_format, profile=None):
             print(f'Unknown RPUREPORT record version {version} at record {record_num}')
             break
 
-        fast_raw = bitstruct.unpack_dict(rpu_fast_bits, rpu_fast_field_names, record[:33])
+        fast_raw = bitstruct.unpack_dict(rpu_fast_bits, rpu_fast_field_names, record[:RPU_FAST_BYTES])
         scaled = _scale_fast(fast_raw, start)
         if profile is not None:
             scaled['profile'] = profile
@@ -265,7 +279,7 @@ def decode_payload(filename, csv_output, float_format, profile=None):
             print(f'Unknown round_robin_idx {idx} at record {record_num}')
             break
         slot_fmt, slot_names = slot
-        slot_raw = bitstruct.unpack_dict(slot_fmt, slot_names, record[33:38])
+        slot_raw = bitstruct.unpack_dict(slot_fmt, slot_names, record[RPU_FAST_BYTES:RPU_RECORD_BYTES])
         scaled.update(_scale_slot(idx, slot_raw))
 
         if csv_output:
