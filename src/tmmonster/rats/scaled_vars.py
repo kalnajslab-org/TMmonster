@@ -1,3 +1,5 @@
+import math
+
 # Scaled variable functions for RATSReport and ECUReport
 
 def rats_scaled_vars_v0(raw_vars):
@@ -253,6 +255,48 @@ def ecu_scaled_vars_v6(raw_vars):
         'rs41_hst': raw_vars['rs41_hst'],
         'rs41_pres': raw_vars['rs41_pres'] / 100.0,
         'rs41_hdg': (raw_vars['rs41_hdg'] / 255.0)*360.0,
+        'rs41_pcb_h': bool(raw_vars['rs41_pcb_h']),
+        'tsen_airt': raw_vars['tsen_airt'],
+        'tsen_ptemp': raw_vars['tsen_ptemp'],
+        'tsen_pres': raw_vars['tsen_pres'],
+        'cpu_temp': raw_vars.get('cpu_temp')/10 - 100.0,
+        'epoch_time': raw_vars.get('epoch_time')
+    }
+
+def ecu_scaled_vars_v7(raw_vars):
+    return {
+        'ecu_report_rev': raw_vars['ecu_report_rev'],
+        'msg_type': raw_vars['msg_type'],
+        'ecu_id': raw_vars['ecu_id'],
+        'heat_on': bool(raw_vars['heat_on']),
+        'rs41_en': bool(raw_vars['rs41_en']),
+        'tsen_power': bool(raw_vars['tsen_power']),
+        'v5': raw_vars['v5'] / 100.0,
+        'v12': raw_vars['v12'] / 100.0,
+        'v56': raw_vars['v56'] / 100.0,
+        'board_t': raw_vars['board_t'] / 10.0 - 100.0,
+        'temp_setpoint': raw_vars['temp_setpoint'] - 100.0,
+        'switch_mA': raw_vars['switch_mA'],
+        'gps_valid': bool(raw_vars['gps_valid']),
+        'gps_lat': raw_vars['gps_lat'] * 1.0e-6,
+        'gps_lon': raw_vars['gps_lon'] * 1.0e-6,
+        'gps_alt': raw_vars['gps_alt'] * 1.0,
+        'gps_sats': raw_vars['gps_sats'],
+        'gps_date': raw_vars['gps_date'],
+        'gps_time': raw_vars['gps_time'],
+        'gps_age_secs': raw_vars['gps_age_secs'],
+        'rs41_valid': bool(raw_vars['rs41_valid']),
+        'rs41_regen': bool(raw_vars['rs41_regen']),
+        # (T+100) x436.9067, -100 to +50 degC
+        'rs41_airt': raw_vars['rs41_airt'] / 436.9067 - 100.0,
+        # (RH+20) x543.1333, -20 to +100 %RH
+        'rs41_hum': raw_vars['rs41_hum'] / 543.1333 - 20.0,
+        # (T+100) x436.9067, -100 to +50 degC
+        'rs41_hst': raw_vars['rs41_hst'] / 436.9067 - 100.0,
+        # (ln(P)-3.9120) x21525.87, ~50-1050 hPa
+        'rs41_pres': math.exp(raw_vars['rs41_pres'] / 21525.87 + 3.9120),
+        'rs41_hdg': (raw_vars['rs41_hdg'] / 255.0) * 360.0,
+        'rs41_status': raw_vars['rs41_status'],
         'rs41_pcb_h': bool(raw_vars['rs41_pcb_h']),
         'tsen_airt': raw_vars['tsen_airt'],
         'tsen_ptemp': raw_vars['tsen_ptemp'],

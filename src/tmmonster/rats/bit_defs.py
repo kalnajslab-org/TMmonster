@@ -322,6 +322,42 @@ ecu_bits = {
         'u24'  # tsen_ptemp (24 bits)
         'u24'  # tsen_pres (24 bits)
         'u11'  # cpu_temp (11 bits)
+    ),
+    7: (
+        '>'    # little-endian
+        'u4'   # rev (4 bits)
+        'u4'   # msg_type (4 bits)
+        'u8'   # ecu_id (8 bits)
+        'u1'   # heat_on (1 bit)
+        'u1'   # rs41_en (1 bit)
+        'u1'   # tsen_power (1 bit)
+        'u9'   # v5 (9 bits)
+        'u11'  # v12 (11 bits)
+        'u13'  # v56 (13 bits)
+        'u11'  # board_t (11 bits)
+        'u8'   # temp_setpoint (8 bits)
+        'u8'   # switch_mA (8 bits)
+        'u1'   # gps_valid (1 bit)
+        's32'  # gps_lat (32 bits)
+        's32'  # gps_lon (32 bits)
+        'u16'  # gps_alt (16 bits)
+        'u5'   # gps_sats (5 bits)
+        'u19'  # gps_date (19 bits)
+        'u25'  # gps_time (25 bits)
+        'u8'   # gps_age_secs (8 bits)
+        'u1'   # rs41_valid (1 bit)
+        'u1'   # rs41_regen (1 bit)
+        'u16'  # rs41_airt (16 bits)
+        'u16'  # rs41_hum (16 bits)
+        'u16'  # rs41_hst (16 bits)
+        'u16'  # rs41_pres (16 bits)
+        'u8'   # rs41_hdg (8 bits)
+        'u8'   # rs41_status (8 bits)
+        'u1'   # rs41_pcb_h (1 bit)
+        'u12'  # tsen_airt (12 bits)
+        'u24'  # tsen_ptemp (24 bits)
+        'u24'  # tsen_pres (24 bits)
+        'u11'  # cpu_temp (11 bits)
     )
 }
 
@@ -494,9 +530,44 @@ ecu_field_names = {
         'rs41_hst', 
         'rs41_pres', 
         'rs41_hdg',
-        'rs41_pcb_h', 
-        'tsen_airt', 
-        'tsen_ptemp', 
+        'rs41_pcb_h',
+        'tsen_airt',
+        'tsen_ptemp',
+        'tsen_pres',
+        'cpu_temp'
+    ],
+    7: [
+        'ecu_report_rev',
+        'msg_type',
+        'ecu_id',
+        'heat_on',
+        'rs41_en',
+        'tsen_power',
+        'v5',
+        'v12',
+        'v56',
+        'board_t',
+        'temp_setpoint',
+        'switch_mA',
+        'gps_valid',
+        'gps_lat',
+        'gps_lon',
+        'gps_alt',
+        'gps_sats',
+        'gps_date',
+        'gps_time',
+        'gps_age_secs',
+        'rs41_valid',
+        'rs41_regen',
+        'rs41_airt',
+        'rs41_hum',
+        'rs41_hst',
+        'rs41_pres',
+        'rs41_hdg',
+        'rs41_status',
+        'rs41_pcb_h',
+        'tsen_airt',
+        'tsen_ptemp',
         'tsen_pres',
         'cpu_temp'
     ]
