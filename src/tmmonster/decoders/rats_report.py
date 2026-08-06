@@ -125,8 +125,15 @@ def decode_payload(
         scaled_ecu_vars = scaling_function(vars)
 
         if csv_output:
-            csv_values = ([iso_format_utc] if iso_format_utc is not None else [])
-            csv_values += [scaled_rats_vars[field] for field in rats_field_names[rats_report_ver]]
+            if record_num == 0:
+                csv_values = ([iso_format_utc] if iso_format_utc is not None else [])
+                csv_values += [scaled_rats_vars[field] for field in rats_field_names[rats_report_ver]]
+            else:
+                # Report-level (header) fields are the same for every ECU
+                # record in this report, so only emit them on the first row
+                # and leave them blank on subsequent rows.
+                csv_values = ([''] if iso_format_utc is not None else [])
+                csv_values += ['' for _ in rats_field_names[rats_report_ver]]
             csv_values += [scaled_ecu_vars[field] for field in ecu_field_names[decode_ver]]
             print_list_csv(data=csv_values, float_fmt=float_format)
         else:
