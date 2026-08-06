@@ -69,8 +69,9 @@ def decode_payload(
 
     # Unpack the ECU data records
     while offset < len(ecu_records_bytes):
-        if offset+header_size > len(ecu_records_bytes):
-            # We've reached the terminating bytes at the end of the file
+        if offset+ecu_record_size > len(ecu_records_bytes):
+            # Fewer than a full record remains: the terminating bytes at the
+            # end of the file.
             break
 
         # Get the next record
@@ -79,8 +80,13 @@ def decode_payload(
         # get the ECU record version from the first 4 bits
         ecu_record_ver = bitstruct.unpack('>u4', ecu_record_bytes[:1])[0]
         if ecu_record_ver not in ecu_bits:
-            print(f'Unknown ECU record version {ecu_record_ver} at record {record_num}')
-            break
+            # A single record with a bad version nibble is corruption (e.g. an
+            # RF bit error), not a format we don't know. Records are fixed size,
+            # so skip this one and stay aligned rather than abandoning the rest.
+            print(f'Skipping unknown ECU record version {ecu_record_ver} at record {record_num}')
+            record_num += 1
+            offset += ecu_record_size
+            continue
 
         if first_file and csv_output and record_num == 0:
             csv_col_names = ('tm_time_utc,' if iso_format_utc is not None else '')
