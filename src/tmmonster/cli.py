@@ -16,6 +16,7 @@ from importlib.metadata import version, PackageNotFoundError
 from . import registry
 from . import builtin_decoders  # noqa: F401  (imported for its registration side effects)
 from .registry import DecodeContext
+from .tm import binary_crc
 
 # The RATSReport contains a bit-packed RATSReport header and a series of ECUReports.
 #
@@ -207,6 +208,16 @@ def main(args):
                 # Only process the report type(s) specified by the user. 
                 # If no report type is specified, process all report types.
                 if not args.report_type or args.report_type in report_type:
+
+                    # Verify the binary-section CRC (REQ 523): 2 big-endian bytes
+                    # after the data block. A mismatch means the payload was
+                    # corrupted in transit; warn but still attempt to decode.
+                    if xml_dict['TM'].get('Length', '0') != '0':
+                        ln = int(xml_dict['TM']['Length'])
+                        st = all_bytes.find(b'</CRC>\nSTART') + 12
+                        stored = all_bytes[st+ln:st+ln+2]
+                        if len(stored) == 2 and binary_crc(all_bytes[st:st+ln]) != int.from_bytes(stored, 'big'):
+                            print(f"Warning: binary CRC mismatch in {os.path.basename(tm_file.name)}", file=sys.stderr)
 
                     if args.summary:
                         file_label = tm_file.name if args.absolute_paths else os.path.basename(tm_file.name)
