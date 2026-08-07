@@ -233,6 +233,12 @@ def main(args):
                     # implemented. Decoders read the binary payload from the file
                     # themselves via TMmsg.
                     csv_header_printed = run_decoder(report_type, tm_filename, tm_file, args, csv_header_printed, xml_dict)
+            except BrokenPipeError:
+                # Downstream reader (e.g. `| head`) closed the pipe early.
+                # There's no point continuing to decode remaining files, and
+                # every further print() would just raise the same error;
+                # propagate it so cli_main can exit quietly.
+                raise
             except Exception as e:
                 print(f"Error processing file {tm_file.name}: {e}", file=sys.stderr)
                 exc_type, exc_value, exc_tb = sys.exc_info()
@@ -252,7 +258,15 @@ def main(args):
 
 def cli_main():
     args = parse_args()
-    counts = main(args)
+    try:
+        counts = main(args)
+    except BrokenPipeError:
+        # Redirect stdout to devnull before exiting so the interpreter's
+        # shutdown-time flush doesn't raise the same error again (standard
+        # recipe for handling SIGPIPE-equivalent behavior on all platforms).
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
+        sys.exit(1)
     if args.count:
         print(json.dumps(counts, indent=2))
 
