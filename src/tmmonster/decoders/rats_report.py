@@ -6,6 +6,13 @@ from ..rats.bit_defs import *
 from ..rats.scaled_vars import *
 from ..csv_util import print_list_csv
 
+# Field names that appear in both the RATS header and every ECU record; the
+# CSV header disambiguates them with a rats_/ecu_ prefix.
+_DUPLICATE_CSV_FIELDS = {'v56', 'cpu_temp', 'gps_lat', 'gps_lon', 'gps_alt'}
+
+def _csv_header_names(field_names, prefix):
+    return [f'{prefix}{name}' if name in _DUPLICATE_CSV_FIELDS else name for name in field_names]
+
 def decode_payload(
     filename: str,
     print_headers: bool,
@@ -109,8 +116,8 @@ def decode_payload(
 
         if first_file and csv_output and record_num == 0:
             csv_col_names = ('tm_time_utc,' if iso_format_utc is not None else '')
-            csv_col_names += ','.join(rats_field_names[rats_report_ver])
-            csv_col_names += ',' + ','.join(ecu_field_names[decode_ver])
+            csv_col_names += ','.join(_csv_header_names(rats_field_names[rats_report_ver], 'rats_'))
+            csv_col_names += ',' + ','.join(_csv_header_names(ecu_field_names[decode_ver], 'ecu_'))
             print(csv_col_names)
             header_emitted = True
 
