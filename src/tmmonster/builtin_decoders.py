@@ -19,8 +19,8 @@ from .decoders import mcb_eeprom
 from .decoders import lpc_rs41
 from .decoders import lpc_opc
 from .decoders import rpu_report
-from .decoders import ratchuts_report
-from .decoders import ratchuts_eeprom
+from .decoders import rachuts_report
+from .decoders import rachuts_eeprom
 from .registry import register, DecodeContext
 
 
@@ -63,13 +63,13 @@ def _mcb_eeprom(ctx: DecodeContext) -> None:
                                   ctx.first_file, ctx.csv, ctx.float_format)
 
 
-@register("RATCHUTSEEPROM")
-def _ratchuts_eeprom(ctx: DecodeContext) -> None:
+@register("RACHUTSEEPROM")
+def _rachuts_eeprom(ctx: DecodeContext) -> None:
     if ctx.show_payload:
         if not ctx.has_payload:
             return
-        ratchuts_eeprom.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
-                                       ctx.first_file, ctx.csv, ctx.float_format)
+        rachuts_eeprom.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
+                                      ctx.first_file, ctx.csv, ctx.float_format)
 
 
 @register("LPCRS41")
@@ -114,11 +114,11 @@ def _rpu_report(ctx: DecodeContext) -> None:
         rpu_report.decode_payload(ctx.tm_filename, ctx.csv, ctx.float_format, profile)
 
 
-@register("RATCHUTSREPORT")
-def _ratchuts_report(ctx: DecodeContext) -> None:
+@register("RACHUTSREPORT")
+def _rachuts_report(ctx: DecodeContext) -> None:
     if ctx.show_payload or ctx.headers:
         if not ctx.has_payload:
-            print("Binary payload not found for RATCHUTSREPORT, can't read headers or data")
+            print("Binary payload not found for RACHUTSREPORT, can't read headers or data")
             return
-        ratchuts_report.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
-                                       ctx.first_file, ctx.csv, ctx.float_format)
+        rachuts_report.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
+                                      ctx.first_file, ctx.csv, ctx.float_format)

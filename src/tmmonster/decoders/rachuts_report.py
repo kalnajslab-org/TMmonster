@@ -1,10 +1,10 @@
 #
-# See StratoRatchuts::SendRATCHUTSREPORT(). A RATCHUTSREPORT TM payload is a
-# JSON object wrapping a "ratchuts" header (always present) and, when an RPU
+# See StratoRachuts::SendRACHUTSREPORT(). A RACHUTSREPORT TM payload is a
+# JSON object wrapping a "rachuts" header (always present) and, when an RPU
 # status is available, an "rpu" block carrying the decoded RPU status -- the
 # same fields the legacy RPUSTATUS TM sent (RPUPacket::toJSON()):
 #
-#   {"ratchuts":{"epoch":1785414236,"mode":"FL","substate":2,"reel":0.00,
+#   {"rachuts":{"epoch":1785414236,"mode":"FL","substate":2,"reel":0.00,
 #                "src":"LORA","rpu_age_s":59},
 #    "rpu":{"id":"3F74","ver":"...","state":"MEASURE",...,"date":...,"time":...}}
 #
@@ -28,14 +28,14 @@ rpu_status_field_names = [
     'date', 'time',
 ]
 
-# "ratchuts" header fields for display/CSV. Raw JSON keys are epoch, mode,
+# "rachuts" header fields for display/CSV. Raw JSON keys are epoch, mode,
 # substate, reel, src, rpu_age_s (firmware order); epoch_utc is derived here.
-ratchuts_header_field_names = ['epoch', 'epoch_utc', 'mode', 'substate', 'reel', 'src', 'rpu_age_s']
+rachuts_header_field_names = ['epoch', 'epoch_utc', 'mode', 'substate', 'reel', 'src', 'rpu_age_s']
 
-# CSV columns: ratchuts header, then the GPS time derived from the rpu block,
+# CSV columns: rachuts header, then the GPS time derived from the rpu block,
 # then the rpu block's own fields.
-ratchuts_report_csv_field_names = (
-    ratchuts_header_field_names + ['gps_datetime_utc'] + rpu_status_field_names
+rachuts_report_csv_field_names = (
+    rachuts_header_field_names + ['gps_datetime_utc'] + rpu_status_field_names
 )
 
 
@@ -82,7 +82,7 @@ def decode_payload(
     json_text = payload.decode('utf-8', errors='replace')
     report = json.loads(json_text)
 
-    header = report.get('ratchuts', {})
+    header = report.get('rachuts', {})
     rpu = report.get('rpu')  # None on header-only reports
     epoch_utc = _epoch_to_utc(header.get('epoch'))
     gps_datetime_utc = (
@@ -90,7 +90,7 @@ def decode_payload(
     )
 
     if print_headers:
-        print('----- RATCHUTSREPORT JSON payload:')
+        print('----- RACHUTSREPORT JSON payload:')
         print(json_text)
         print(f'epoch_utc: {epoch_utc}')
         print(f'gps_datetime_utc: {gps_datetime_utc}')
@@ -116,12 +116,12 @@ def decode_payload(
 
     if csv_output:
         if first_file:
-            print(','.join(ratchuts_report_csv_field_names))
-        row = [values.get(f) for f in ratchuts_report_csv_field_names]
+            print(','.join(rachuts_report_csv_field_names))
+        row = [values.get(f) for f in rachuts_report_csv_field_names]
         print_list_csv(data=row, float_fmt=float_format)
     else:
-        print('----- RATCHUTSREPORT:')
-        for field in ratchuts_header_field_names:
+        print('----- RACHUTSREPORT:')
+        for field in rachuts_header_field_names:
             line(field)
         if rpu:
             line('gps_datetime_utc')

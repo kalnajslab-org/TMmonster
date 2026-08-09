@@ -4,8 +4,8 @@ import struct
 from ..tm import TMmsg
 from ..csv_util import print_list_csv
 
-# Decoder for the RATCHUTS (PIB) EEPROM dump, sent as a TM with StateMess1
-# "RATCHUTSEEPROM" (see StratoRatchuts::SendPIBEEPROM()).
+# Decoder for the RACHUTS (PIB) EEPROM dump, sent as a TM with StateMess1
+# "RACHUTSEEPROM" (see StratoRachuts::SendPIBEEPROM()).
 #
 # The payload is produced by TeensyEEPROM::Bufferize(), which copies the raw
 # EEPROM bytes from start_addr to next_addr:
@@ -159,7 +159,7 @@ def decode_payload(
 
     config_version = struct.unpack('<H', payload[0:2])[0]
     if config_version not in versions:
-        print(f'Unknown RATCHUTSEEPROM config version 0x{config_version:04X}')
+        print(f'Unknown RACHUTSEEPROM config version 0x{config_version:04X}')
         sys.exit(1)
 
     if not print_payload:
@@ -186,7 +186,7 @@ def decode_payload(
         print_list_csv(data=csv_values, float_fmt=float_format)
     else:
         float_fmt = f'{{:{float_format}}}' if float_format else None
-        print("----- RATCHUTSEEPROM:")
+        print("----- RACHUTSEEPROM:")
         print(f'config_version: 0x{config_version:04X}')
         for key, value in eeprom.items():
             if key == 'config_version':
