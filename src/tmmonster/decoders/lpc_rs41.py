@@ -2,6 +2,7 @@ from typing import Optional
 import struct
 import csv
 import io
+from datetime import datetime, timezone
 import numpy as np
 import glob as glob
 
@@ -20,9 +21,8 @@ def decode_payload(
     if print_payload:
         if csv_output:
             if first_file:
-                # Print header lines (metadata + column names)
-                    print(",".join(rs41_tmmsg.csvTitleFields()))
-                    print(",".join(rs41_tmmsg.rs41ParamNames()))
+                print(",".join(rs41_tmmsg.rs41ParamNames()))
+                print(",".join(rs41_tmmsg.rs41ParamUnits()))
             for r in rs41_tmmsg.records:
                 print_list_csv([r[v] for v in rs41_tmmsg.rs41ParamNames()], float_format)
         else:
@@ -105,23 +105,27 @@ class RS41msg(TMmsg):
             None
         '''
         super().__init__(msg_filename)
+
+        self.lat = ''
+        self.lon = ''
+        self.alt = ''
+        tm_xml = self.parse_TM_xml()
+        if 'StateMess3' in tm_xml['TM']:
+            tokens = tm_xml['TM']['StateMess3'].split(',')
+            if len(tokens) == 3:
+                self.lat, self.lon, self.alt = tokens
+
         self.records = self.allRS41samples()
 
-    def csvTitleFields(self) -> list:
-        '''
-        Create a CSV header for the output.
-
-        Returns:
-            list: A list representing the CSV header.
-        '''
-        title = ['Instrument:', 'RS41', 'Measurement End Time:', self.formatted_time, 
-                   'NCAR RS41 sensor on Strateole 2 Super Pressure Balloons']
-        return title
-
     def rs41ParamNames(self) -> list:
-        return ['valid', 'unix_time', 'air_temp_degC', 'humdity_percent',
+        return ['valid', 'epoch', 'epoch_utc', 'lat_deg', 'lon_deg', 'alt_m', 'air_temp_degC', 'humdity_percent',
                 'humidity_sensor_temp_degC', 'pres_mb', 'module_error',
                 'rs41_rh_percent', 'wv_mixing_ratio_ppmv']
+
+    def rs41ParamUnits(self) -> list:
+        return ['[bool]', '[epoch]', '[iso8601]', '[deg]', '[deg]', '[m]', '[C]', '[%]',
+                '[C]', '[mb]', '[#]',
+                '[%]', '[ppmv]']
 
     def decodeRS41sample(self, record)->dict:
         '''
@@ -162,7 +166,14 @@ class RS41msg(TMmsg):
         # Compute the unix time for each sample
         start_time = self.unix_end_time - (records[-1]['secs_from_start'] - records[0]['secs_from_start'] + 1)
         for i in range(len(records)):
-            records[i]['unix_time'] =  records[i]['secs_from_start'] + start_time
+            records[i]['epoch'] = records[i]['secs_from_start'] + start_time
+            records[i]['epoch_utc'] = datetime.fromtimestamp(records[i]['epoch'], tz=timezone.utc).isoformat().replace('+00:00', 'Z')
+            # lat/lon/alt are the position at the start of the message
+            # (from StateMess3), not per-record GPS; only the first record
+            # of the message carries it.
+            records[i]['lat_deg'] = self.lat if i == 0 else ''
+            records[i]['lon_deg'] = self.lon if i == 0 else ''
+            records[i]['alt_m'] = self.alt if i == 0 else ''
 
         return records
 

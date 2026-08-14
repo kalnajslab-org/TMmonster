@@ -1,4 +1,5 @@
 import struct
+from datetime import datetime, timezone
 from ..tm import TMmsg
 from ..csv_util import print_list_csv
 
@@ -14,8 +15,6 @@ def decode_payload(
     if print_payload:
         if csv_output:
             if first_file:
-                print(','.join(map(str, opc_msg.csvTitleFields())))
-                print(','.join(map(str, opc_msg.csvGPSFields())))
                 print(','.join(opc_msg.opcParamNames()))
                 print(','.join(opc_msg.opcParamUnits()))
             for r in opc_msg.records:
@@ -35,12 +34,12 @@ def decode_payload(
 _HG_DIAMS = [275, 300, 325, 350, 375, 400, 450, 500, 550, 600, 650, 700, 750, 800, 900, 1000]
 _LG_DIAMS = [1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000, 6000, 8000, 10000, 13000, 16000, 24000, 24000]
 
-_HK_NAMES = ['unix_time', 'pump1_I_mA', 'pump2_I_mA', 'pha_I_mA',
+_HK_NAMES = ['epoch', 'epoch_utc', 'lat_deg', 'lon_deg', 'alt_m', 'pump1_I_mA', 'pump2_I_mA', 'pha_I_mA',
              'pha_12V_V', 'pha_3V3_V', 'cpu_V_V', 'input_V_V',
              'flow_SLPM', 'pump1_PWM', 'pump2_PWM', 'pump1_T_degC',
              'pump2_T_degC', 'laser_T_degC', 'pcb_T_degC', 'inlet_T_degC']
 
-_HK_UNITS = ['[unix_time]', '[mA]', '[mA]', '[mA]', '[V]', '[V]', '[V]', '[V]',
+_HK_UNITS = ['[epoch]', '[iso8601]', '[deg]', '[deg]', '[m]', '[mA]', '[mA]', '[mA]', '[V]', '[V]', '[V]', '[V]',
              '[SLPM]', '[#]', '[#]', '[C]', '[C]', '[C]', '[C]', '[C]']
 
 
@@ -68,26 +67,19 @@ class LPCmsg(TMmsg):
 
         tm_xml = self.parse_TM_xml()
 
-        self.inst = 'Unknown'
-        if 'Inst' in tm_xml['TM']:
-            self.inst = tm_xml['TM']['Inst']
-
-        if 'StateMess3' in tm_xml['TM']:
-            tokens = tm_xml['TM']['StateMess3'].split(',')
+        # StateMess2 carries the lat,lon,alt string for OPC messages (it's
+        # what distinguishes LPCOPC from LPCRS41 in get_report_type: RS41
+        # messages have StateMess2 == "RS41", OPC messages have position
+        # there instead). StateMess3, when present, just repeats it, but
+        # isn't always sent -- so read from StateMess2.
+        if 'StateMess2' in tm_xml['TM']:
+            tokens = tm_xml['TM']['StateMess2'].split(',')
             if len(tokens) == 3:
                 self.lat = tokens[0]
                 self.lon = tokens[1]
                 self.alt = tokens[2]
 
         self.records = self._unpackBinary()
-
-    def csvTitleFields(self) -> list:
-        return ['Instrument:', self.inst, 'Measurement End Time:', self.formatted_time,
-                'LASP Optical Particle Counter on Strateole 2 Super Pressure Balloons']
-
-    def csvGPSFields(self) -> list:
-        return ['GPS Position at start of Measurement', 'Latitude:', self.lat,
-                'Longitude:', self.lon, 'Altitude [m]:', self.alt]
 
     def opcParamNames(self) -> list:
         return (_HK_NAMES +
@@ -117,7 +109,14 @@ class LPCmsg(TMmsg):
                 hk_raw.append(struct.unpack_from('>H', self.bindata, indx + x * 2 + 64)[0])
 
             # HK fields first (insertion order matches opcParamNames)
-            r['unix_time'] = hk_raw[0] + self.unix_end_time
+            r['epoch'] = hk_raw[0] + self.unix_end_time
+            r['epoch_utc'] = datetime.fromtimestamp(r['epoch'], tz=timezone.utc).isoformat().replace('+00:00', 'Z')
+            # lat/lon/alt are the position at the start of the message
+            # (from StateMess3), not per-record GPS; only the first record
+            # of the message carries it.
+            r['lat_deg'] = self.lat if y == 0 else ''
+            r['lon_deg'] = self.lon if y == 0 else ''
+            r['alt_m'] = self.alt if y == 0 else ''
             r['pump1_I_mA'] = float(hk_raw[1])
             r['pump2_I_mA'] = float(hk_raw[2])
             r['pha_I_mA'] = float(hk_raw[3])

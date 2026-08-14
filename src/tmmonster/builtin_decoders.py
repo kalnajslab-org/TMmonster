@@ -91,6 +91,13 @@ def _lpc_opc(ctx: DecodeContext) -> None:
                                ctx.first_file, ctx.csv, ctx.float_format)
 
 
+@register("LPCTEXT")
+def _lpc_text(ctx: DecodeContext) -> None:
+    # LPC status/text TMs (e.g. "Unknown TC received") carry no binary
+    # payload; nothing to decode.
+    return
+
+
 @register("MCBREPORT")
 def _mcb_report(ctx: DecodeContext) -> None:
     if ctx.first_file and ctx.csv:

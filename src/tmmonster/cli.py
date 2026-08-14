@@ -137,16 +137,24 @@ def get_report_type(xml_dict: dict) -> str | None:
     Determines the report type from the TM XML dictionary.
     """
 
-    instrument = xml_dict['TM']['Inst']
+    tm_section = xml_dict.get('TM', {})
+    instrument = tm_section.get('Inst')
     if instrument == "RATS":
-        return xml_dict['TM']['StateMess1']
+        return tm_section.get('StateMess1')
     elif instrument == "LPC":
-        if xml_dict['TM']['StateMess2'] == "RS41":
+        # LPC omits StateFlagN/StateMessN pairs it has no content for, so a
+        # missing StateMess2 is normal, not corruption: it means this TM is a
+        # payload-free status/warning message rather than an RS41 or OPC
+        # data report.
+        state_mess2 = tm_section.get('StateMess2')
+        if state_mess2 is None:
+            return "LPCTEXT"
+        elif state_mess2 == "RS41":
             return "LPCRS41"
         else:
             return "LPCOPC"
     elif instrument == "RACHUTS":
-        return xml_dict['TM']['StateMess1']
+        return tm_section.get('StateMess1')
 
     return None
 
@@ -207,7 +215,7 @@ def main(args):
 
                 # Only process the report type(s) specified by the user. 
                 # If no report type is specified, process all report types.
-                if not args.report_type or args.report_type in report_type:
+                if not args.report_type or args.report_type in (report_type or ""):
 
                     # Verify the binary-section CRC (REQ 523): 2 big-endian bytes
                     # after the data block. A mismatch means the payload was

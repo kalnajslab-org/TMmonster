@@ -5,3 +5,4 @@ __pycache__/
 
 # Local decode outputs written to the repo root
 /*.csv
+/*.tar.gz
