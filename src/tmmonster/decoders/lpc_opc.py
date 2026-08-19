@@ -1,3 +1,4 @@
+import os
 import struct
 from datetime import datetime, timezone
 from ..tm import TMmsg
@@ -9,9 +10,10 @@ def decode_payload(
     print_payload: bool,
     first_file: bool,
     csv_output: bool,
-    float_format: str
+    float_format: str,
+    file_number: int = 0
 ) -> None:
-    opc_msg = LPCmsg(filename)
+    opc_msg = LPCmsg(filename, file_number)
     if print_payload:
         if csv_output:
             if first_file:
@@ -34,12 +36,12 @@ def decode_payload(
 _HG_DIAMS = [275, 300, 325, 350, 375, 400, 450, 500, 550, 600, 650, 700, 750, 800, 900, 1000]
 _LG_DIAMS = [1200, 1400, 1600, 1800, 2000, 2500, 3000, 3500, 4000, 6000, 8000, 10000, 13000, 16000, 24000, 24000]
 
-_HK_NAMES = ['epoch', 'epoch_utc', 'lat_deg', 'lon_deg', 'alt_m', 'pump1_I_mA', 'pump2_I_mA', 'pha_I_mA',
+_HK_NAMES = ['epoch', 'epoch_utc', 'file_number', 'file_name', 'lat_deg', 'lon_deg', 'alt_m', 'pump1_I_mA', 'pump2_I_mA', 'pha_I_mA',
              'pha_12V_V', 'pha_3V3_V', 'cpu_V_V', 'input_V_V',
              'flow_SLPM', 'pump1_PWM', 'pump2_PWM', 'pump1_T_degC',
              'pump2_T_degC', 'laser_T_degC', 'pcb_T_degC', 'inlet_T_degC']
 
-_HK_UNITS = ['[epoch]', '[iso8601]', '[deg]', '[deg]', '[m]', '[mA]', '[mA]', '[mA]', '[V]', '[V]', '[V]', '[V]',
+_HK_UNITS = ['[epoch]', '[iso8601]', '[#]', '[name]', '[deg]', '[deg]', '[m]', '[mA]', '[mA]', '[mA]', '[V]', '[V]', '[V]', '[V]',
              '[SLPM]', '[#]', '[#]', '[C]', '[C]', '[C]', '[C]', '[C]']
 
 
@@ -57,8 +59,14 @@ def _bin_field_names(prefix, diams):
     return names
 
 class LPCmsg(TMmsg):
-    def __init__(self, msg_filename: str):
+    def __init__(self, msg_filename: str, file_number: int = 0):
         super().__init__(msg_filename)
+
+        self.file_number = file_number
+        # Strip directory and all extensions (e.g. ".LPC.dat") down to the
+        # root timestamp name; truncates at the first dot, so this also cuts
+        # off anything after a dot that's part of the base name itself.
+        self.file_name = os.path.basename(msg_filename).split('.', 1)[0]
 
         self.sn = 'Unknown'
         self.lat = ''
@@ -111,6 +119,11 @@ class LPCmsg(TMmsg):
             # HK fields first (insertion order matches opcParamNames)
             r['epoch'] = hk_raw[0] + self.unix_end_time
             r['epoch_utc'] = datetime.fromtimestamp(r['epoch'], tz=timezone.utc).isoformat().replace('+00:00', 'Z')
+            # file_number/file_name identify the source TM file this message
+            # came from; like lat/lon/alt below, only the first record of the
+            # message carries them.
+            r['file_number'] = self.file_number if y == 0 else ''
+            r['file_name'] = self.file_name if y == 0 else ''
             # lat/lon/alt are the position at the start of the message
             # (from StateMess3), not per-record GPS; only the first record
             # of the message carries it.

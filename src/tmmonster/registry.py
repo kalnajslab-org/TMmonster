@@ -29,6 +29,7 @@ class DecodeContext:
     tm_filename: str              # absolute path to the source TM file
     tm_file: object               # the open file handle for the source TM
     first_file: bool = False      # first file seen for this report type
+    file_number: int = 0          # 1-based count of files of this report type decoded in this run
     # Whether this file emitted the one-time CSV column header. Defaults True
     # (most decoders always emit their header on the first file); a decoder
     # that can fail to emit it — e.g. a records-less RATSREPORT — sets it False

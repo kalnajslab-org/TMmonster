@@ -88,7 +88,7 @@ def _lpc_opc(ctx: DecodeContext) -> None:
         if not ctx.has_payload:
             return
         lpc_opc.decode_payload(ctx.tm_filename, ctx.headers, ctx.show_payload,
-                               ctx.first_file, ctx.csv, ctx.float_format)
+                               ctx.first_file, ctx.csv, ctx.float_format, ctx.file_number)
 
 
 @register("LPCTEXT")

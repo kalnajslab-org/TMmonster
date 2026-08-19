@@ -158,7 +158,7 @@ def get_report_type(xml_dict: dict) -> str | None:
 
     return None
 
-def run_decoder(report_type: str | None, tm_filename: str, tm_file, args, csv_header_printed: set, xml_dict: dict) -> set:
+def run_decoder(report_type: str | None, tm_filename: str, tm_file, args, csv_header_printed: set, decoded_counts: dict, xml_dict: dict) -> set:
     """
     Runs the registered decoder for the given report type (see builtin_decoders
     for the adapters). Each decoder reads the binary payload from the file
@@ -171,6 +171,8 @@ def run_decoder(report_type: str | None, tm_filename: str, tm_file, args, csv_he
             print(f"{report_type} payload processing not yet implemented.")
         return csv_header_printed
 
+    decoded_counts[report_type] = decoded_counts.get(report_type, 0) + 1
+
     ctx = DecodeContext(
         report_type=report_type,
         has_payload=xml_dict['TM'].get('Length', '0') != '0',
@@ -182,6 +184,7 @@ def run_decoder(report_type: str | None, tm_filename: str, tm_file, args, csv_he
         tm_filename=tm_filename,
         tm_file=tm_file,
         first_file=report_type not in csv_header_printed,
+        file_number=decoded_counts[report_type],
     )
 
     decoder(ctx)
@@ -197,6 +200,7 @@ def run_decoder(report_type: str | None, tm_filename: str, tm_file, args, csv_he
 def main(args):
     csv_header_printed: set[str] = set()
     counts: dict[str, int] = {}
+    decoded_counts: dict[str, int] = {}
 
     for filename in args.tm_file:
         tm_filename = os.path.abspath(filename)
@@ -240,7 +244,7 @@ def main(args):
                     # Perform the appropriate decoding for this report type, if
                     # implemented. Decoders read the binary payload from the file
                     # themselves via TMmsg.
-                    csv_header_printed = run_decoder(report_type, tm_filename, tm_file, args, csv_header_printed, xml_dict)
+                    csv_header_printed = run_decoder(report_type, tm_filename, tm_file, args, csv_header_printed, decoded_counts, xml_dict)
             except BrokenPipeError:
                 # Downstream reader (e.g. `| head`) closed the pipe early.
                 # There's no point continuing to decode remaining files, and
