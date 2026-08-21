@@ -79,21 +79,59 @@ def Hardy_1998(TC):
    esw_hPa=np.exp(lesw)/100
    return esw_hPa
 
+def _decodeRS41sample_common(record) -> dict:
+    r = {}
+    r['valid'] = bool(struct.unpack_from('B', record, 0)[0])
+    r['secs_from_start'] = struct.unpack_from('>l', record, 1)[0]
+    r['air_temp_degC'] = struct.unpack_from('>H', record, 5)[0]/100.0-100.0
+    r['humdity_percent'] = struct.unpack_from('>H', record, 7)[0]/100.0
+    return r
+
+
+def _decodeRS41sample_v1(record) -> dict:
+    '''
+    13-byte record (pre-tsensor firmware, e.g. archived pre-2024-06 TMs):
+    valid(1) + frame(4) + tdry(2) + humidity(2) + pres(2) + error(2).
+    No humidity-sensor-temperature reading, so RH/mixing-ratio can't be derived.
+    '''
+    r = _decodeRS41sample_common(record)
+    r['humidity_sensor_temp_degC'] = float('nan')
+    r['pres_mb'] = struct.unpack_from('>H', record, 9)[0]/50.0
+    r['module_error'] = struct.unpack_from('>H', record, 11)[0]
+    r['rs41_rh_percent'] = float('nan')
+    r['wv_mixing_ratio_ppmv'] = float('nan')
+    return r
+
+
+def _decodeRS41sample_v2(record) -> dict:
+    '''
+    15-byte record (current firmware, StratoLPC.h rs41TmSample_t):
+    valid(1) + frame(4) + tdry(2) + humidity(2) + tsensor(2) + pres(2) + error(2).
+    '''
+    r = _decodeRS41sample_common(record)
+    r['humidity_sensor_temp_degC'] = struct.unpack_from('>H', record, 9)[0]/100.0-100.0
+    r['pres_mb'] = struct.unpack_from('>H', record, 11)[0]/50.0
+    r['module_error'] = struct.unpack_from('>H', record, 13)[0]
+    r['rs41_rh_percent'],r['wv_mixing_ratio_ppmv']=RS41_RH_wvmr(r['air_temp_degC'],r['pres_mb'],r['humdity_percent'],r['humidity_sensor_temp_degC'])
+    return r
+
+
+# Record length is the only version signal on the wire (no explicit format
+# tag) — keyed by the byte length of one record, derived per-message from
+# the header's n_samples field. Add new firmware formats here by byte length.
+RS41_FORMATS = {
+    13: _decodeRS41sample_v1,
+    15: _decodeRS41sample_v2,
+}
+
+
 class RS41msg(TMmsg):
     # The binary payload for the RS41 contains a couple of
     # metadata fields, followed by multiple data records.
     # The payload is coded as follows:
     # uint32_t start time
     # uint16_t n_samples
-    # data records:
-    # struct RS41Sample_t {
-    #    uint8_t valid;
-    #    uint32_t frame;
-    #    uint16_t tdry; (tdry+100)*100
-    #    uint16_t humidity; (humdity*100)
-    #    uint16_t pres; (pres*100)
-    #    uint16_t error;
-    #};
+    # data records: see RS41_FORMATS for the per-version record layout.
     def __init__(self, msg_filename:str):
         '''
         Initialize the object with the provided binary data.
@@ -127,29 +165,26 @@ class RS41msg(TMmsg):
                 '[C]', '[mb]', '[#]',
                 '[%]', '[ppmv]']
 
-    def decodeRS41sample(self, record)->dict:
+    def decodeRS41sample(self, record, record_len)->dict:
         '''
         Decode a binary sample and convert it to real-world values.
 
         Args:
             record: The binary sample to decode.
+            record_len: Byte length of the record, used to select the
+                firmware format's decoder (see RS41_FORMATS).
 
         Returns:
             dict: Decoded real-world values of the binary sample.
         '''
-        r = {}
-        r['valid'] = bool(struct.unpack_from('B', record, 0)[0])
-        r['secs_from_start'] = struct.unpack_from('>l', record, 1)[0]
-        # print('decodeRS41',self.unix_end_time,r['unix_time'])
-        r['air_temp_degC'] = struct.unpack_from('>H', record, 5)[0]/100.0-100.0
-        r['humdity_percent'] = struct.unpack_from('>H', record, 7)[0]/100.0
-        r['humidity_sensor_temp_degC'] = struct.unpack_from('>H', record, 9)[0]/100.0-100.0
-        r['pres_mb'] = struct.unpack_from('>H', record, 11)[0]/50.0
-        r['module_error'] = struct.unpack_from('>H', record, 13)[0]
-        r['rs41_rh_percent'],r['wv_mixing_ratio_ppmv']=RS41_RH_wvmr(r['air_temp_degC'],r['pres_mb'],r['humdity_percent'],r['humidity_sensor_temp_degC'])
-        #print(r)
-        return r
-    
+        decoder = RS41_FORMATS.get(record_len)
+        if decoder is None:
+            raise ValueError(
+                f"Unrecognized RS41 record length {record_len} bytes; "
+                f"known formats: {sorted(RS41_FORMATS)}"
+            )
+        return decoder(record)
+
     def allRS41samples(self)->list:
         '''
         Go through all data samples and convert them to real-world values.
@@ -157,11 +192,15 @@ class RS41msg(TMmsg):
         Returns:
             list: List of dictionaries containing decoded real-world values for each data sample.
         '''
-        record_len = 1 + 4 + 2 + 2 + 2 + 2 + 2
+        HEADER_LEN = 6
+        n_samples = struct.unpack_from('>H', self.bindata, 4)[0]
+        record_len = (len(self.bindata) - HEADER_LEN) // n_samples
+
         records = []
-        for i in range(6, len(self.bindata)-6, record_len):
-            record = self.bindata[i:i+record_len]
-            records.append(self.decodeRS41sample(record))
+        for i in range(n_samples):
+            offset = HEADER_LEN + i * record_len
+            record = self.bindata[offset:offset+record_len]
+            records.append(self.decodeRS41sample(record, record_len))
 
         # Compute the unix time for each sample
         start_time = self.unix_end_time - (records[-1]['secs_from_start'] - records[0]['secs_from_start'] + 1)
