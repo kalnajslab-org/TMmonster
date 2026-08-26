@@ -219,7 +219,7 @@ def _scale_slot(idx, raw):
             if name != '_pad':
                 scaled[name] = raw[name]
     elif idx == 3:
-        scaled['rs41_hdg'] = raw['rs41_hdg'] * (360.0 / 256.0)  # 0-360°, ~1.41° res
+        scaled['rs41_hdg'] = raw['rs41_hdg'] * (360.0 / 255.0)  # 0-360°, ~1.41° res; matches firmware's symmetric encode (ECUReport.cpp add_rs41)
         scaled['bemf_v'] = raw['bemf_v'] / 1000.0
         scaled['rs41_status'] = raw['rs41_status']              # 8 flag bits
     elif idx == 4:

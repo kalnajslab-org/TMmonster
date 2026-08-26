@@ -85,6 +85,9 @@ def _decodeRS41sample_common(record) -> dict:
     r['secs_from_start'] = struct.unpack_from('>l', record, 1)[0]
     r['air_temp_degC'] = struct.unpack_from('>H', record, 5)[0]/100.0-100.0
     r['humdity_percent'] = struct.unpack_from('>H', record, 7)[0]/100.0
+    # Not present until the v3 (17-byte) record; default so CSV columns stay stable.
+    r['heading_deg'] = float('nan')
+    r['rs41_status'] = None
     return r
 
 
@@ -105,7 +108,7 @@ def _decodeRS41sample_v1(record) -> dict:
 
 def _decodeRS41sample_v2(record) -> dict:
     '''
-    15-byte record (current firmware, StratoLPC.h rs41TmSample_t):
+    15-byte record (StratoLPC.h rs41TmSample_t, pre-heading/status firmware):
     valid(1) + frame(4) + tdry(2) + humidity(2) + tsensor(2) + pres(2) + error(2).
     '''
     r = _decodeRS41sample_common(record)
@@ -116,12 +119,25 @@ def _decodeRS41sample_v2(record) -> dict:
     return r
 
 
+def _decodeRS41sample_v3(record) -> dict:
+    '''
+    17-byte record (current firmware, StratoLPC.h rs41TmSample_t):
+    valid(1) + frame(4) + tdry(2) + humidity(2) + tsensor(2) + pres(2) + error(2) + heading(1) + status(1).
+    heading/status use the same bit width, scaling and offset as the RPU (see rpu_report.py).
+    '''
+    r = _decodeRS41sample_v2(record)
+    r['heading_deg'] = struct.unpack_from('B', record, 15)[0] * (360.0 / 255.0)  # 0-360°, ~1.41° res
+    r['rs41_status'] = struct.unpack_from('B', record, 16)[0]  # 8 flag bits packed as bits
+    return r
+
+
 # Record length is the only version signal on the wire (no explicit format
 # tag) — keyed by the byte length of one record, derived per-message from
 # the header's n_samples field. Add new firmware formats here by byte length.
 RS41_FORMATS = {
     13: _decodeRS41sample_v1,
     15: _decodeRS41sample_v2,
+    17: _decodeRS41sample_v3,
 }
 
 
@@ -158,12 +174,12 @@ class RS41msg(TMmsg):
     def rs41ParamNames(self) -> list:
         return ['valid', 'epoch', 'epoch_utc', 'lat_deg', 'lon_deg', 'alt_m', 'air_temp_degC', 'humdity_percent',
                 'humidity_sensor_temp_degC', 'pres_mb', 'module_error',
-                'rs41_rh_percent', 'wv_mixing_ratio_ppmv']
+                'rs41_rh_percent', 'wv_mixing_ratio_ppmv', 'heading_deg', 'rs41_status']
 
     def rs41ParamUnits(self) -> list:
         return ['[bool]', '[epoch]', '[iso8601]', '[deg]', '[deg]', '[m]', '[C]', '[%]',
                 '[C]', '[mb]', '[#]',
-                '[%]', '[ppmv]']
+                '[%]', '[ppmv]', '[deg]', '[bitmask]']
 
     def decodeRS41sample(self, record, record_len)->dict:
         '''
