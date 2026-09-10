@@ -149,7 +149,7 @@ def get_report_type(xml_dict: dict) -> str | None:
         state_mess2 = tm_section.get('StateMess2')
         if state_mess2 is None:
             return "LPCTEXT"
-        elif state_mess2 == "RS41":
+        elif state_mess2 == "RS41" or state_mess2.startswith("RS41,"):
             return "LPCRS41"
         else:
             return "LPCOPC"
