@@ -179,6 +179,40 @@ pib_eeprom_fields = {
         # periodic offload (single offload at the end of the profile)
         ('docked_offload_period', 'H'),
     ],
+    0x5C0A: [
+        ('config_version', 'H'),   # the version itself, bytes 0-1
+        # profile sizing (revolutions)
+        ('profile_size', 'f'),
+        ('dock_amount', 'f'),
+        ('dock_overshoot', 'f'),
+        ('redock_out', 'f'),
+        ('redock_in', 'f'),
+        # profile speeds (rpm)
+        ('deploy_velocity', 'f'),
+        ('retract_velocity', 'f'),
+        ('dock_velocity', 'f'),
+        # RPU configuration
+        ('rpu_bat_temp', 'f'),
+        ('rpu_status_rate', 'H'),
+        ('rpu_meas_rate', 'H'),
+        ('rpu_enable_TSEN', 'B'),
+        ('rpu_enable_ROPC', 'B'),
+        ('rpu_enable_RS41', 'B'),
+        ('rpu_enable_TDLAS', 'B'),
+        # profile timing (seconds)
+        ('dwell_time', 'H'),
+        ('preprofile_time', 'H'),
+        ('motion_timeout', 'H'),
+        ('num_redock', 'B'),
+        # PU tracking
+        ('pu_docked', '?'),
+        # MCB TM mode
+        ('real_time_mcb', '?'),
+        ('profile_id', 'H'),
+        # docked profile periodic offload interval (seconds); 0 disables
+        # periodic offload (single offload at the end of the profile)
+        ('docked_offload_period', 'H'),
+    ],
 }
 
 versions = list(pib_eeprom_fields.keys())
