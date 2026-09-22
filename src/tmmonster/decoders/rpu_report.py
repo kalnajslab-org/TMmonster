@@ -3,17 +3,17 @@
 # record format. An RPUREPORT TM payload is a 12-byte block header followed by a
 # block of records, back to back.
 #
-# Each record is RPU_RECORD_BYTES (48) bytes, big-endian bit order, and is laid
+# Each record is RPU_RECORD_BYTES (49) bytes, big-endian bit order, and is laid
 # out as:
 #
 #   version (4 bits)
-#   27 "fast" fields (period = 1, present in every record)   -> 340 bits
+#   28 "fast" fields (period = 1, present in every record)   -> 348 bits
 #   one 40-bit round-robin "slot" carrying a rotating group of the 19 "slow"
 #   fields (period = 6), selected by the round_robin_idx fast field
 #
-# 4 + 340 = 344 bits = 43 bytes (byte-aligned), then 40 bits = 5 bytes for the
-# slot, for 48 bytes total. Because both halves are byte-aligned we decode the
-# fast fields from record[0:43] and the slot from record[43:48].
+# 4 + 348 = 352 bits = 44 bytes (byte-aligned), then 40 bits = 5 bytes for the
+# slot, for 49 bytes total. Because both halves are byte-aligned we decode the
+# fast fields from record[0:44] and the slot from record[44:49].
 #
 # The slow fields not carried in a given record's slot are left blank.
 #
@@ -26,9 +26,9 @@ import bitstruct
 from ..tm import TMmsg
 from ..csv_util import print_list_csv
 
-RPU_RECORD_BYTES = 48
-RPU_FAST_BYTES = 43         # version + fast fields, byte-aligned
-RPU_RPT_VERSION = 1
+RPU_RECORD_BYTES = 49
+RPU_FAST_BYTES = 44         # version + fast fields, byte-aligned
+RPU_RPT_VERSION = 2
 
 # A 12-byte block header (big-endian) prepended to the record block by the RPU
 # (RPURecord::encodeBlockHeader): epoch_time (uint32) + gps_lat (int32) +
@@ -38,7 +38,7 @@ RPU_BLOCK_HDR_BYTES = 12
 rpu_block_hdr_bits = '>u32s32s32'
 
 # --- Fast fields (period = 1, present in every record) ---------------------
-# Includes the leading 4-bit version. 344 bits total = 43 bytes.
+# Includes the leading 4-bit version. 352 bits total = 44 bytes.
 rpu_fast_bits = (
     '>'      # big-endian bit order (matches etl::endian::big)
     'u4'     # packet format version
@@ -58,17 +58,18 @@ rpu_fast_bits = (
     'u16'    # rs41_pres
     'u16'    # rs41_humidity
     'u16'    # rs41_hsensor_t
-    'u16'    # tdlas_mr_avg
-    'u12'    # tdlas_bkg
-    'u8'     # tdlas_peak
-    'u10'    # tdlas_ratio
-    'u14'    # tdlas_max_vmr
-    'u8'     # tdlas_laser_t
-    'u12'    # tdlas_spec_1
-    'u12'    # tdlas_spec_2
-    'u12'    # tdlas_spec_3
-    'u12'    # tdlas_spec_4
-    'u4'     # tdlas_idx
+    'u18'    # tdlas_mixing_ratio
+    'u12'    # tdlas_background
+    'u9'     # tdlas_peak
+    'u5'     # tdlas_ratio
+    'u12'    # tdlas_laser_temp
+    'u7'     # tdlas_mr_max_ratio
+    'u5'     # tdlas_status
+    'u4'     # tdlas_cluster_idx
+    'u14'    # tdlas_cluster_1
+    'u14'    # tdlas_cluster_2
+    'u14'    # tdlas_cluster_3
+    'u14'    # tdlas_cluster_4
 )
 
 rpu_fast_field_names = [
@@ -89,17 +90,18 @@ rpu_fast_field_names = [
     'rs41_pres',
     'rs41_humidity',
     'rs41_hsensor_t',
-    'tdlas_mr_avg',
-    'tdlas_bkg',
+    'tdlas_mixing_ratio',
+    'tdlas_background',
     'tdlas_peak',
     'tdlas_ratio',
-    'tdlas_max_vmr',
-    'tdlas_laser_t',
-    'tdlas_spec_1',
-    'tdlas_spec_2',
-    'tdlas_spec_3',
-    'tdlas_spec_4',
-    'tdlas_idx',
+    'tdlas_laser_temp',
+    'tdlas_mr_max_ratio',
+    'tdlas_status',
+    'tdlas_cluster_idx',
+    'tdlas_cluster_1',
+    'tdlas_cluster_2',
+    'tdlas_cluster_3',
+    'tdlas_cluster_4',
 ]
 
 # --- Round-robin slow-field slots (period = 6) -----------------------------
@@ -195,17 +197,18 @@ def _scale_fast(raw, start=None):
         'rs41_pres': math.exp((raw['rs41_pres'] / 21525.87) + 3.9120),
         'rs41_humidity': (raw['rs41_humidity'] / 543.1333) - 20.0,
         'rs41_hsensor_t': (raw['rs41_hsensor_t'] / 436.9067) - 100.0,
-        'tdlas_mr_avg': raw['tdlas_mr_avg'] / 100.0,
-        'tdlas_bkg': raw['tdlas_bkg'] / 10.0,
+        'tdlas_mixing_ratio': raw['tdlas_mixing_ratio'] / 100.0,
+        'tdlas_background': float(raw['tdlas_background']),
         'tdlas_peak': raw['tdlas_peak'] / 10.0,
-        'tdlas_ratio': raw['tdlas_ratio'] / 1000.0,
-        'tdlas_max_vmr': raw['tdlas_max_vmr'] / 10.0,
-        'tdlas_laser_t': float(raw['tdlas_laser_t']),
-        'tdlas_spec_1': raw['tdlas_spec_1'] / 1000.0,
-        'tdlas_spec_2': raw['tdlas_spec_2'] / 1000.0,
-        'tdlas_spec_3': raw['tdlas_spec_3'] / 1000.0,
-        'tdlas_spec_4': raw['tdlas_spec_4'] / 1000.0,
-        'tdlas_idx': raw['tdlas_idx'],
+        'tdlas_ratio': raw['tdlas_ratio'] / 10.0,
+        'tdlas_laser_temp': raw['tdlas_laser_temp'] / 100.0,
+        'tdlas_mr_max_ratio': raw['tdlas_mr_max_ratio'] / 10.0,
+        'tdlas_status': raw['tdlas_status'],
+        'tdlas_cluster_idx': raw['tdlas_cluster_idx'],
+        'tdlas_cluster_1': raw['tdlas_cluster_1'] / 100.0,
+        'tdlas_cluster_2': raw['tdlas_cluster_2'] / 100.0,
+        'tdlas_cluster_3': raw['tdlas_cluster_3'] / 100.0,
+        'tdlas_cluster_4': raw['tdlas_cluster_4'] / 100.0,
     })
     return scaled
 
