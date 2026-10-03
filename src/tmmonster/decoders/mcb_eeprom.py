@@ -6,6 +6,7 @@ from ..csv_util import print_list_csv
 # Sentinel values used in ConfigManagerMCB to mark a limit as "not in use"
 _FLT_MAX = struct.unpack('<f', bytes([0xFF, 0xFF, 0x7F, 0x7F]))[0]
 _FLT_MIN = struct.unpack('<f', bytes([0x00, 0x00, 0x80, 0x00]))[0]
+_NEG_FLT_MAX = -_FLT_MAX
 
 # From ConfigManagerMCB.h / ConfigManagerMCB.cpp (CONFIG_VERSION 0x5C01):
 #
@@ -42,7 +43,10 @@ _FLT_MIN = struct.unpack('<f', bytes([0x00, 0x00, 0x80, 0x00]))[0]
 # TeensyEEPROM::Bufferize() reads from BASE_ADDRESS (includes the version uint16_t),
 # then all registered fields sequentially. All values are little-endian (Teensy ARM).
 
-versions = [0x5C01]
+# 0x5C01: all MCB builds before the RATS fix; "not in use" low bound is FLT_MIN.
+# 0x5C02: RATS builds only (INST_RATS). Same field layout as 0x5C01; defaults changed:
+#         "not in use" low bound is -FLT_MAX and limits_enabled defaults to false.
+versions = [0x5C01, 0x5C02]
 
 # (field_name, struct_fmt)  — in order as stored in EEPROM after the 2-byte version
 _fields = [
@@ -132,6 +136,8 @@ def decode_payload(
                 print(f'{key}: {value}  (disabled: FLT_MAX)')
             elif isinstance(value, float) and value == _FLT_MIN:
                 print(f'{key}: {value}  (disabled: FLT_MIN)')
+            elif isinstance(value, float) and value == _NEG_FLT_MAX:
+                print(f'{key}: {value}  (disabled: -FLT_MAX)')
             elif isinstance(value, float) and float_fmt:
                 print(f'{key}: {float_fmt.format(value)}')
             else:
