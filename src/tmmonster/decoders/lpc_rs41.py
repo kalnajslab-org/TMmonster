@@ -1,5 +1,6 @@
 from typing import Optional
 import struct
+import math
 import csv
 import io
 from datetime import datetime, timezone
@@ -91,6 +92,17 @@ def _decodeRS41sample_common(record) -> dict:
     return r
 
 
+def _pres_mb_linear(raw: int) -> float:
+    '''Pre-ln firmware: pres_mb*50 (0-1310 mb).'''
+    return raw/50.0
+
+
+def _pres_mb_ln(raw: int) -> float:
+    '''Current firmware: raw = (ln(mb) - 3.4012) * 18533.04, ~30-1030 mb in 16 bits.
+    Same encoding as the RPU/ECU reports (see rpu_report.py).'''
+    return math.exp(raw/18533.04 + 3.4012)
+
+
 def _decodeRS41sample_v1(record) -> dict:
     '''
     13-byte record (pre-tsensor firmware, e.g. archived pre-2024-06 TMs):
@@ -99,21 +111,22 @@ def _decodeRS41sample_v1(record) -> dict:
     '''
     r = _decodeRS41sample_common(record)
     r['humidity_sensor_temp_degC'] = float('nan')
-    r['pres_mb'] = struct.unpack_from('>H', record, 9)[0]/50.0
+    r['pres_mb'] = _pres_mb_linear(struct.unpack_from('>H', record, 9)[0])
     r['module_error'] = struct.unpack_from('>H', record, 11)[0]
     r['rs41_rh_percent'] = float('nan')
     r['wv_mixing_ratio_ppmv'] = float('nan')
     return r
 
 
-def _decodeRS41sample_v2(record) -> dict:
+def _decodeRS41sample_v2(record, pres_fn=_pres_mb_linear) -> dict:
     '''
     15-byte record (StratoLPC.h rs41TmSample_t, pre-heading/status firmware):
     valid(1) + frame(4) + tdry(2) + humidity(2) + tsensor(2) + pres(2) + error(2).
+    Pressure is linear for these records; the v3 decoder passes pres_fn=_pres_mb_ln.
     '''
     r = _decodeRS41sample_common(record)
     r['humidity_sensor_temp_degC'] = struct.unpack_from('>H', record, 9)[0]/100.0-100.0
-    r['pres_mb'] = struct.unpack_from('>H', record, 11)[0]/50.0
+    r['pres_mb'] = pres_fn(struct.unpack_from('>H', record, 11)[0])
     r['module_error'] = struct.unpack_from('>H', record, 13)[0]
     r['rs41_rh_percent'],r['wv_mixing_ratio_ppmv']=RS41_RH_wvmr(r['air_temp_degC'],r['pres_mb'],r['humdity_percent'],r['humidity_sensor_temp_degC'])
     return r
@@ -124,8 +137,10 @@ def _decodeRS41sample_v3(record) -> dict:
     17-byte record (current firmware, StratoLPC.h rs41TmSample_t):
     valid(1) + frame(4) + tdry(2) + humidity(2) + tsensor(2) + pres(2) + error(2) + heading(1) + status(1).
     heading/status use the same bit width, scaling and offset as the RPU (see rpu_report.py).
+    Pressure is ln-encoded (see _pres_mb_ln). There is no version tag, so any older
+    17-byte files recorded with linear pressure will decode with the wrong pressure.
     '''
-    r = _decodeRS41sample_v2(record)
+    r = _decodeRS41sample_v2(record, _pres_mb_ln)
     r['heading_deg'] = struct.unpack_from('B', record, 15)[0] * (360.0 / 255.0)  # 0-360°, ~1.41° res
     r['rs41_status'] = struct.unpack_from('B', record, 16)[0]  # 8 flag bits packed as bits
     return r
