@@ -28,7 +28,8 @@ from ..csv_util import print_list_csv
 
 RPU_RECORD_BYTES = 49
 RPU_FAST_BYTES = 44         # version + fast fields, byte-aligned
-RPU_RPT_VERSION = 2
+RPU_RPT_VERSION = 3         # current record version
+RPU_RPT_VERSIONS = (2, 3)   # decodable; layouts identical, v3 only re-scales rs41_pres
 
 # A 12-byte block header (big-endian) prepended to the record block by the RPU
 # (RPURecord::encodeBlockHeader): epoch_time (uint32) + gps_lat (int32) +
@@ -162,7 +163,7 @@ def parse_block_header(payload):
     return epoch, lat_raw / 1e6, lon_raw / 1e6
 
 
-def _scale_fast(raw, start=None):
+def _scale_fast(raw, start=None, version=RPU_RPT_VERSION):
     '''
     Convert raw fast fields to engineering units (see RPURecord getters).
     If start is a (epoch, lat, lon) tuple, also emit the absolute UTC time and
@@ -194,7 +195,9 @@ def _scale_fast(raw, start=None):
         'tsen_pres': raw['tsen_pres'],
         'tsen_ptemp': raw['tsen_ptemp'],
         'rs41_air_t': (raw['rs41_air_t'] / 436.9067) - 100.0,
-        'rs41_pres': math.exp((raw['rs41_pres'] / 21525.87) + 3.9120),
+        # v2: (ln(P)-3.9120) x21525.87, ~50-1050 hPa; v3: (ln(P)-3.4012) x18533.04, ~30-1030 hPa
+        'rs41_pres': (math.exp((raw['rs41_pres'] / 21525.87) + 3.9120) if version == 2
+                      else math.exp((raw['rs41_pres'] / 18533.04) + 3.4012)),
         'rs41_humidity': (raw['rs41_humidity'] / 543.1333) - 20.0,
         'rs41_hsensor_t': (raw['rs41_hsensor_t'] / 436.9067) - 100.0,
         'tdlas_mixing_ratio': raw['tdlas_mixing_ratio'] / 100.0,
@@ -267,12 +270,12 @@ def decode_payload(filename, csv_output, float_format, profile=None):
         record = payload[offset:offset + RPU_RECORD_BYTES]
 
         version = bitstruct.unpack('>u4', record[:1])[0]
-        if version != RPU_RPT_VERSION:
+        if version not in RPU_RPT_VERSIONS:
             print(f'Unknown RPUREPORT record version {version} at record {record_num}')
             break
 
         fast_raw = bitstruct.unpack_dict(rpu_fast_bits, rpu_fast_field_names, record[:RPU_FAST_BYTES])
-        scaled = _scale_fast(fast_raw, start)
+        scaled = _scale_fast(fast_raw, start, version)
         if profile is not None:
             scaled['profile'] = profile
 
