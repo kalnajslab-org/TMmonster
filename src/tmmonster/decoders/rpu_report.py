@@ -3,17 +3,19 @@
 # record format. An RPUREPORT TM payload is a 12-byte block header followed by a
 # block of records, back to back.
 #
-# Each record is RPU_RECORD_BYTES (49) bytes, big-endian bit order, and is laid
-# out as:
+# Each record is RPU_RECORD_BYTES (51 for v4; 49 for v2/v3) bytes, big-endian bit
+# order, and is laid out as:
 #
 #   version (4 bits)
 #   28 "fast" fields (period = 1, present in every record)   -> 348 bits
 #   one 40-bit round-robin "slot" carrying a rotating group of the 19 "slow"
 #   fields (period = 6), selected by the round_robin_idx fast field
 #
-# 4 + 348 = 352 bits = 44 bytes (byte-aligned), then 40 bits = 5 bytes for the
-# slot, for 49 bytes total. Because both halves are byte-aligned we decode the
-# fast fields from record[0:44] and the slot from record[44:49].
+# v4: 4 + 364 = 368 bits = 46 bytes (byte-aligned), then 40 bits = 5 bytes for the
+# slot, for 51 bytes total (v2/v3: 352 bits = 44 bytes fast, 49 total; tsen_pres
+# and tsen_ptemp were the top 16 bits of the 24-bit count). Because both halves
+# are byte-aligned we decode the fast fields from record[:fast_bytes] and the
+# slot from the following 5 bytes. The record size depends on the version.
 #
 # The slow fields not carried in a given record's slot are left blank.
 #
@@ -26,10 +28,18 @@ import bitstruct
 from ..tm import TMmsg
 from ..csv_util import print_list_csv
 
-RPU_RECORD_BYTES = 49
-RPU_FAST_BYTES = 44         # version + fast fields, byte-aligned
-RPU_RPT_VERSION = 3         # current record version
-RPU_RPT_VERSIONS = (2, 3)   # decodable; layouts identical, v3 only re-scales rs41_pres
+RPU_SLOT_BYTES = 5
+RPU_RPT_VERSION = 4         # current record version
+# Decodable versions -> (fast bytes, record bytes). v2/v3 share a layout (v3 only
+# re-scales rs41_pres); v4 widens tsen_pres/tsen_ptemp from 16 to 24 bits.
+RPU_VERSION_SIZES = {
+    2: (44, 49),
+    3: (44, 49),
+    4: (46, 51),
+}
+RPU_RPT_VERSIONS = tuple(RPU_VERSION_SIZES)
+RPU_RECORD_BYTES = RPU_VERSION_SIZES[RPU_RPT_VERSION][1]
+RPU_FAST_BYTES = RPU_VERSION_SIZES[RPU_RPT_VERSION][0]
 
 # A 12-byte block header (big-endian) prepended to the record block by the RPU
 # (RPURecord::encodeBlockHeader): epoch_time (uint32) + gps_lat (int32) +
@@ -39,39 +49,48 @@ RPU_BLOCK_HDR_BYTES = 12
 rpu_block_hdr_bits = '>u32s32s32'
 
 # --- Fast fields (period = 1, present in every record) ---------------------
-# Includes the leading 4-bit version. 352 bits total = 44 bytes.
-rpu_fast_bits = (
-    '>'      # big-endian bit order (matches etl::endian::big)
-    'u4'     # packet format version
-    'u4'     # round_robin_idx
-    'u16'    # elapsed_s
-    'u16'    # alt (raw m)
-    's16'    # lat_delta (signed)
-    's16'    # lon_delta (signed)
-    'u4'     # sats
-    'u4'     # gps_age_s
-    'u16'    # opc_d300
-    'u16'    # opc_d2000
-    'u16'    # tsen_airt
-    'u16'    # tsen_pres
-    'u16'    # tsen_ptemp
-    'u16'    # rs41_air_t
-    'u16'    # rs41_pres
-    'u16'    # rs41_humidity
-    'u16'    # rs41_hsensor_t
-    'u18'    # tdlas_mixing_ratio
-    'u12'    # tdlas_background
-    'u9'     # tdlas_peak
-    'u5'     # tdlas_ratio
-    'u12'    # tdlas_laser_temp
-    'u7'     # tdlas_mr_max_ratio
-    'u5'     # tdlas_status
-    'u4'     # tdlas_cluster_idx
-    'u14'    # tdlas_cluster_1
-    'u14'    # tdlas_cluster_2
-    'u14'    # tdlas_cluster_3
-    'u14'    # tdlas_cluster_4
-)
+# Includes the leading 4-bit version. v4: 368 bits total = 46 bytes
+# (v2/v3: tsen_pres/tsen_ptemp are u16, 352 bits = 44 bytes).
+def _fast_bits(tsen_wide_bits):
+    return (
+        '>'      # big-endian bit order (matches etl::endian::big)
+        'u4'     # packet format version
+        'u4'     # round_robin_idx
+        'u16'    # elapsed_s
+        'u16'    # alt (raw m)
+        's16'    # lat_delta (signed)
+        's16'    # lon_delta (signed)
+        'u4'     # sats
+        'u4'     # gps_age_s
+        'u16'    # opc_d300
+        'u16'    # opc_d2000
+        'u16'    # tsen_airt
+        f'u{tsen_wide_bits}'    # tsen_pres
+        f'u{tsen_wide_bits}'    # tsen_ptemp
+        'u16'    # rs41_air_t
+        'u16'    # rs41_pres
+        'u16'    # rs41_humidity
+        'u16'    # rs41_hsensor_t
+        'u18'    # tdlas_mixing_ratio
+        'u12'    # tdlas_background
+        'u9'     # tdlas_peak
+        'u5'     # tdlas_ratio
+        'u12'    # tdlas_laser_temp
+        'u7'     # tdlas_mr_max_ratio
+        'u5'     # tdlas_status
+        'u4'     # tdlas_cluster_idx
+        'u14'    # tdlas_cluster_1
+        'u14'    # tdlas_cluster_2
+        'u14'    # tdlas_cluster_3
+        'u14'    # tdlas_cluster_4
+    )
+
+
+rpu_fast_bits_by_version = {
+    2: _fast_bits(16),
+    3: _fast_bits(16),
+    4: _fast_bits(24),
+}
 
 rpu_fast_field_names = [
     'version',
@@ -256,7 +275,17 @@ def decode_payload(filename, csv_output, float_format, profile=None):
     start = parse_block_header(payload)
     payload = payload[RPU_BLOCK_HDR_BYTES:]
 
-    num_records = len(payload) // RPU_RECORD_BYTES
+    # Record size depends on the record version, carried in the first nibble.
+    if len(payload) == 0:
+        return
+    block_version = bitstruct.unpack('>u4', payload[:1])[0]
+    if block_version not in RPU_VERSION_SIZES:
+        print(f'Unknown RPUREPORT record version {block_version}')
+        return
+    fast_bytes, record_bytes = RPU_VERSION_SIZES[block_version]
+    fast_bits = rpu_fast_bits_by_version[block_version]
+
+    num_records = len(payload) // record_bytes
     if num_records == 0:
         return
 
@@ -266,15 +295,15 @@ def decode_payload(filename, csv_output, float_format, profile=None):
         print(f'Profile start (UTC): {start_utc}  lat: {lat0}  lon: {lon0}')
 
     for record_num in range(num_records):
-        offset = record_num * RPU_RECORD_BYTES
-        record = payload[offset:offset + RPU_RECORD_BYTES]
+        offset = record_num * record_bytes
+        record = payload[offset:offset + record_bytes]
 
         version = bitstruct.unpack('>u4', record[:1])[0]
-        if version not in RPU_RPT_VERSIONS:
-            print(f'Unknown RPUREPORT record version {version} at record {record_num}')
+        if version != block_version:
+            print(f'Unexpected RPUREPORT record version {version} (block is v{block_version}) at record {record_num}')
             break
 
-        fast_raw = bitstruct.unpack_dict(rpu_fast_bits, rpu_fast_field_names, record[:RPU_FAST_BYTES])
+        fast_raw = bitstruct.unpack_dict(fast_bits, rpu_fast_field_names, record[:fast_bytes])
         scaled = _scale_fast(fast_raw, start, version)
         if profile is not None:
             scaled['profile'] = profile
@@ -285,7 +314,7 @@ def decode_payload(filename, csv_output, float_format, profile=None):
             print(f'Unknown round_robin_idx {idx} at record {record_num}')
             break
         slot_fmt, slot_names = slot
-        slot_raw = bitstruct.unpack_dict(slot_fmt, slot_names, record[RPU_FAST_BYTES:RPU_RECORD_BYTES])
+        slot_raw = bitstruct.unpack_dict(slot_fmt, slot_names, record[fast_bytes:record_bytes])
         scaled.update(_scale_slot(idx, slot_raw))
 
         if csv_output:
@@ -299,7 +328,7 @@ def decode_payload(filename, csv_output, float_format, profile=None):
                     continue
                 value = scaled[key]
                 if key in ('tsen_pres', 'tsen_ptemp'):
-                    print(f'{key}: 0x{value:04x}')
+                    print(f'{key}: 0x{value:0{6 if block_version >= 4 else 4}x}')
                 elif isinstance(value, float) and float_fmt:
                     print(f'{key}: {float_fmt.format(value)}')
                 else:
