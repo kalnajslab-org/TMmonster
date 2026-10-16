@@ -75,17 +75,18 @@ class LPCmsg(TMmsg):
 
         tm_xml = self.parse_TM_xml()
 
-        # StateMess2 carries the lat,lon,alt string for OPC messages (it's
-        # what distinguishes LPCOPC from LPCRS41 in get_report_type: RS41
-        # messages have StateMess2 == "RS41", OPC messages have position
-        # there instead). StateMess3, when present, just repeats it, but
-        # isn't always sent -- so read from StateMess2.
-        if 'StateMess2' in tm_xml['TM']:
-            tokens = tm_xml['TM']['StateMess2'].split(',')
+        # Current LPC firmware sends the lat,lon,alt string in StateMess3
+        # (StateMess2 holds the "OPC,..." values). Older firmware put it in
+        # StateMess2 instead, so fall back to that when StateMess3 doesn't
+        # hold a 3-token position.
+        for key in ('StateMess3', 'StateMess2'):
+            text = tm_xml['TM'].get(key, '')
+            if text.startswith('OPC,'):
+                continue
+            tokens = text.split(',')
             if len(tokens) == 3:
-                self.lat = tokens[0]
-                self.lon = tokens[1]
-                self.alt = tokens[2]
+                self.lat, self.lon, self.alt = tokens
+                break
 
         self.records = self._unpackBinary()
 
