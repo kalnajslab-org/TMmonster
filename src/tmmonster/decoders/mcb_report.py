@@ -1,7 +1,7 @@
 import bitstruct
 from datetime import datetime, timezone
 import math
-from ..tm import TMmsg
+from ..tm import TMmsg, ccmz_receipt_time
 from ..csv_util import print_list_csv
 
 mcb_start_time = (
@@ -49,12 +49,63 @@ mcb_field_names = [
     'level_wind_position'
 ]
 
+# A RACHuTS real-time MCB TM ("MCB TM Packet N") carries one bare motion
+# record: mcb_bits without the sync byte and elapsed time, and no start-time
+# header. Its only time is the CCMZ receipt time in the filename.
+mcb_bare_bits = (
+    '>'     # big-endian
+    'u8'    # rotating parameter index
+    'u16'   # rotating parameter average
+    'u16'   # rotating parameter max
+    'u16'   # reel torque average
+    'u16'   # reel torque max
+    'u16'   # level wind torque average
+    'u16'   # level wind torque max
+    'u16'   # reel current average
+    'u16'   # reel current max
+    'u16'   # level wind current average
+    'u16'   # level wind current max
+    'f32'   # reel absolute position in revolutions
+    'f32'   # level wind absolute position in whatever units the level wind uses
+)
+
+mcb_bare_field_names = mcb_field_names[2:]  # no sync_byte, elapsed_time_tenths_sec
+
+mcb_bare_size_bytes = math.ceil(bitstruct.calcsize(mcb_bare_bits) / 8)  # 29
+
 def csv_header():
     header_fields = ','.join(mcb_start_field_names+['start_time_iso']+mcb_field_names)
     return header_fields
 
+def decode_bare_record(filename, payload, csv_output, float_format):
+    vars = bitstruct.unpack_dict(mcb_bare_bits, mcb_bare_field_names, payload)
+    receipt = ccmz_receipt_time(filename)
+    if receipt is None:
+        epoch, iso_format_utc = '', ''
+    else:
+        epoch = int(receipt.timestamp())
+        iso_format_utc = datetime.fromtimestamp(epoch, tz=timezone.utc).isoformat()+'Z'
+
+    if csv_output:
+        # Same column order as the buffered rows below; sync and elapsed blank.
+        csv_values = [iso_format_utc, epoch, '', '']
+        csv_values += [vars[field] for field in mcb_bare_field_names]
+        print_list_csv(csv_values, float_format)
+    else:
+        print(f"Receipt time (UTC): {iso_format_utc or 'unknown (not a CCMZ filename)'}")
+        float_fmt = f'{{:{float_format}}}' if float_format else None
+        for key, value in vars.items():
+            if isinstance(value, float) and float_fmt:
+                print(f"{key}: {float_fmt.format(value)}")
+            else:
+                print(f"{key}: {value}")
+
 def decode_payload(filename, csv_output, float_format):
     payload = TMmsg(filename).bindata
+
+    if len(payload) == mcb_bare_size_bytes:
+        decode_bare_record(filename, payload, csv_output, float_format)
+        return
 
     # From StratoRATS::InitMCBMotionTracking():
     # uint32_t ProfileStartEpoch  = now();

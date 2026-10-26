@@ -6,6 +6,7 @@
 # bit-packed ECU data block.
 # 
 
+import re
 import sys
 import json
 import traceback
@@ -154,7 +155,13 @@ def get_report_type(xml_dict: dict) -> str | None:
         else:
             return "LPCOPC"
     elif instrument == "RACHUTS":
-        return tm_section.get('StateMess1')
+        state_mess1 = tm_section.get('StateMess1')
+        # In real-time MCB mode RACHuTS sends one MCB motion record per TM,
+        # numbered in StateMess1 ("MCB TM Packet 7"). The payload is an
+        # MCBREPORT record, so decode it as one.
+        if state_mess1 and re.fullmatch(r"MCB TM Packet \d+", state_mess1):
+            return "MCBREPORT"
+        return state_mess1
 
     return None
 

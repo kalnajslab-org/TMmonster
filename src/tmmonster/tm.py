@@ -1,6 +1,31 @@
+import os
+import re
 import struct
 import xmltodict
 from datetime import datetime, timezone
+
+
+# CCMZ TM filename: <FLIGHT>.<NN>_<YYYYMMDD>_<HH>_<MM>_<SS><hh>.<INST>.dat,
+# e.g. ST2_C2_51_TTL3.14_20261026_05_41_1829.RACHUTS.dat (05:41:18.29 UTC).
+# The time is when CCMZ received the TM, not when the instrument made it.
+_CCMZ_NAME_RE = re.compile(
+    r"\.\d+_(\d{4})(\d{2})(\d{2})_(\d{2})_(\d{2})_(\d{2})(\d{2})?\.[A-Za-z0-9]+\.dat")
+
+
+def ccmz_receipt_time(filename: str) -> datetime | None:
+    '''
+    Return the receipt time (UTC) encoded in a CCMZ TM filename, or None if the
+    name is not in the CCMZ form.
+    '''
+    m = _CCMZ_NAME_RE.search(os.path.basename(filename))
+    if not m:
+        return None
+    year, month, day, hour, minute, second, hundredths = (int(g or 0) for g in m.groups())
+    try:
+        return datetime(year, month, day, hour, minute, second, hundredths * 10000,
+                        tzinfo=timezone.utc)
+    except ValueError:
+        return None
 
 
 def binary_crc(data: bytes, crc: int = 0x1021) -> int:
